@@ -1,0 +1,6 @@
+@media (max-width: 1110px)
+{
+    .side-bar{
+        display: none;
+    }
+}
