@@ -34,18 +34,20 @@ const PasswordWithValidation: React.FC<PasswordWithValidationProps> = ({ onPassw
 
   return (
     <div>
-        <div>
-    <input
-      type="password"
-      value={password}
-      onChange={handlePasswordChange}
-      className="form-control ps-5"
-      placeholder="Password"
-    />
+      <div>
+        <input
+          type="password"
+          className="w-full border-2 border-gray-50 rounded-xl p-4 mt-1 bg-transparent"
+          value={password}
+          onChange={handlePasswordChange}
+          placeholder="Password"
+        />
+      </div>
+      <div>
+        <Checklist checks={checks} />
+      </div>
     </div>
-    <Checklist checks={checks} />
-  </div>
-    
+
   );
 };
 

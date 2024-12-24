@@ -1,11 +1,12 @@
-import { TokenClient } from "../Sevices/Login/TokenClient";
+import {useTokenClient } from "../Sevices/Login/TokenClient";
 import {v4 as uuidv4} from 'uuid';
 import CryptoJS from 'crypto-js';
 
-export class Encryptor {
-    static async encryptPassword(password: string): Promise<[encryptedPassword: string, keyId: string]> {
+export const useEncryptor = () => {
+    const tokenClient = useTokenClient();
+    const encryptPassword = async(password: string): Promise<[encryptedPassword: string, keyId: string]> => {
         try {
-            const { key, iv, keyId } = await this.generateAndSaveCredentials();
+            const { key, iv, keyId } = await generateAndSaveCredentials();
     
             // Encrypt the password
             const encryptedPassword = CryptoJS.AES.encrypt(password, CryptoJS.enc.Base64.parse(key), {
@@ -25,9 +26,9 @@ export class Encryptor {
         }
     }
 
-    static async encryptEmail(email: string): Promise<[encryptedEmail: string, keyId: string]>{ 
+   const encryptEmail = async(email: string): Promise<[encryptedEmail: string, keyId: string]> => { 
 
-        const {key, iv, keyId} = await this.generateAndSaveCredentials();
+        const {key, iv, keyId} = await generateAndSaveCredentials();
 
         const encryptedEmail = CryptoJS.AES.encrypt(email, CryptoJS.enc.Base64.parse(key), { 
             iv: CryptoJS.enc.Base64.parse(iv), 
@@ -41,8 +42,8 @@ export class Encryptor {
         ];
     }
 
-    static async encryptCredentails(email: string, password: string): Promise<[encryptedPassword: string, encryptedEmail: string, keyId: string]>{ 
-        const {key, iv, keyId} = await this.generateAndSaveCredentials();
+    const encryptCredentails= async(email: string, password: string): Promise<[encryptedPassword: string, encryptedEmail: string, keyId: string]> => { 
+        const {key, iv, keyId} = await generateAndSaveCredentials();
 
         const encryptedEmail = CryptoJS.AES.encrypt(email, CryptoJS.enc.Base64.parse(key), { 
             iv: CryptoJS.enc.Base64.parse(iv), 
@@ -63,14 +64,12 @@ export class Encryptor {
         ]
     }
     
-    static async generateAndSaveCredentials() {
+    const generateAndSaveCredentials = async() =>  {
         const key = CryptoJS.lib.WordArray.random(32); // 32 bytes = 256 bits
         const iv = CryptoJS.lib.WordArray.random(16); // 16 bytes = 128 bits
     
         const keyBase64 = CryptoJS.enc.Base64.stringify(key);
         const ivBase64 = CryptoJS.enc.Base64.stringify(iv);
-    
-        const tokenClient = new TokenClient();
         const keyId = uuidv4();
     
         // Save credentials securely
@@ -81,5 +80,10 @@ export class Encryptor {
             iv: ivBase64,
             keyId: keyId
         };
+    }
+
+    return{encryptPassword, 
+           encryptCredentails, 
+           encryptEmail
     }
 }

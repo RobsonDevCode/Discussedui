@@ -1,26 +1,20 @@
-
-import {
-    Person as PersonIcon,
-    Envelope as EmialIcon,
-    Key as PasswordIcon,
-    ExclamationCircle as ErrorIcon
-} from 'react-bootstrap-icons';
-
-import './LoginSignUp.css'
 import axios from "axios";
 import { useState } from 'react';
 import { Register } from '../../models/Login/Register';
-import { LoginClient } from '../../Sevices/Login/LoginClient';
+import { useLoginClient } from '../../Sevices/Login/LoginClient';
 import PasswordWithValidation from '../../Components/Login/PasswordWithValidation';
-import ResponsiveLogo from './ResponsiveLogo';
 import { useNavigate } from 'react-router-dom';
 import SignUpSidebar from '../../Components/Shared/SignUpSidebar';
+import { XCircleFill } from 'react-bootstrap-icons';
+import Spinner from 'react-bootstrap/Spinner';
 
 const LoginSignUp: React.FC = () => {
-    const navigate = useNavigate()
+    const navigate = useNavigate();
+    const loginCli = useLoginClient();
     const [regUsername, setUserName] = useState('');
     const [regEmail, setEmail] = useState('');
     const [regPassword, setPassword] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const [isPasswordValid, setIsPasswordValid] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false); // State to track submission
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -29,14 +23,12 @@ const LoginSignUp: React.FC = () => {
     const handlePasswordChange = (password: string, isValid: boolean) => {
         setPassword(password);
         setIsPasswordValid(isValid);
-
-
     }
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setIsSubmitted(true);
-
+        setIsLoading(true);
         const registerUser: Register = {
             user_name: regUsername,
             email_address: regEmail,
@@ -45,11 +37,11 @@ const LoginSignUp: React.FC = () => {
         };
 
         try {
-            const loginCli = new LoginClient();
             const [response, encryptedEmail, keyId] = await loginCli.postNewUserRequest(registerUser);
+            setIsLoading(false);
             if (response.status === 200) {
                 navigate("/code-confirmation/", { state: { encryptedEmail, keyId } });
-            };
+            }
 
         } catch (error) {
             if (axios.isAxiosError(error)) {
@@ -57,7 +49,9 @@ const LoginSignUp: React.FC = () => {
                     setIsErrorVisible(true);
                     const apiError = error.response.data?.error.message;
                     console.error(apiError);
+                    setIsLoading(false);
                     if (apiError != null) {
+
                         setErrorMessage(`Error: ${apiError}`);
                     } else {
                         setErrorMessage("An error occurred our side, we're sorry for the inconvenience. Please try again later.");
@@ -74,92 +68,75 @@ const LoginSignUp: React.FC = () => {
 
     };
     return (
-        <div className='flex h-screen'>
-            <div className="fixed left-0 top-0 h-screen w-1/4">
+        <div className="flex w-full h-screen">
+            <div className="hidden lg:flex h-screen w-[530px] bg-white border-r drop-shadow-lg">
                 <SignUpSidebar />
             </div>
-            <form className='sign-up' onSubmit={handleSubmit}>
-                <div className="flex-grow flex justify-center items-center">
-                    <ResponsiveLogo />
-                    <div className={`container ${isErrorVisible ? 'container-expanded' : 'container'}`}>
-                        <div className="header">
-                            <div className="text">Sign Up</div>
-                            <div className="divider"></div>
-                        </div>
-                        <div className="inputs">
-                            {errorMessage != null && isSubmitted && <span className='error-message'>{errorMessage}</span>}
-                            {isErrorVisible && (<div className="bg-red-200 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert" >
-                                <div className="d-flex align-items-centre">
-                                    <ErrorIcon /> {errorMessage}
-                                </div>
-                            </div>
-                            )}
-                            <div className="input position-relative">
 
-                                <PersonIcon
-                                    size={24}
-                                    className="position-absolute text-muted"
-                                    style={{
-                                        transform: 'translateY(160%) translateX(15%)',
-                                        zIndex: 10,
-                                        color: 'ghostwhite'
-                                    }}
-                                />
+            <div className="flex-1 flex items-center justify-center text-gray-50 font-mono">
+                <form onSubmit={handleSubmit}>
+
+                    <h1 className='text-4xl font-semibold text-center'>Sign up</h1>
+                    <p className='text-center font-medium text-lg text-slate-100 mt-4'>Welcome to discussed please enter the details.</p>
+
+                    <div className='mt-8'>
+                        {isErrorVisible && (<div className="bg-red-200 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert" >
+                            <div className="d-flex align-items-centre">
+                                <XCircleFill size={24} color="red" />{errorMessage}
+                            </div>
+                        </div>
+                        )
+                        }
+                        <div>
+                            <div className="">
                                 <input required
                                     pattern="[a-zA-Z0-9 ]+"
+                                    className='w-full border-2 border-gray-50 rounded-xl p-4 mt-1 bg-transparent'
                                     value={regUsername}
                                     onChange={(e) => setUserName(e.target.value)}
                                     type="text"
-                                    className="form-control ps-5"
                                     placeholder="Username"
                                     title="Username can only contain letters, numbers."
                                 />
                             </div>
-                            <div className="input-divider"></div>
 
-                            <div className="input position-relative">
-                                <EmialIcon
-                                    size={24}
-                                    className="position-absolute text-muted"
-                                    style={{
-                                        transform: 'translateY(160%) translateX(15%)',
-                                        zIndex: 10,
-                                        color: 'ghostwhite'
-                                    }}
-                                />
+                            <div className="mt-4">
+
                                 <input required
                                     value={regEmail}
+                                    className='w-full border-2 border-gray-50 rounded-xl p-4 mt-1 bg-transparent'
                                     onChange={(e) => setEmail(e.target.value)}
                                     type="email"
-                                    className="form-control ps-5"
                                     placeholder="name@example.com"
                                 />
                             </div>
-                            <div className="input-divider"></div>
-
-                            <div className="input position-relative">
-                                <PasswordIcon
-                                    size={24}
-                                    className="position-absolute text-muted"
-                                    style={{
-                                        transform: 'translateY(160%) translateX(15%)',
-                                        zIndex: 10,
-                                        color: 'ghostwhite'
-                                    }}
-                                />
+                            <div className="mt-4">
                                 <PasswordWithValidation onPasswordChange={handlePasswordChange} />
 
                                 {!isPasswordValid && isSubmitted && <span className='error-message'>Your Password must meet all requirements</span>}
                             </div>
+                        </div>
 
-                            <div className="submit-container">
-                                <button type="submit" className="submit-button">Create Account</button>
-                            </div>
+                        <div className="mt-8 flex flex-col">
+                            {isLoading ? (
+                            <div className="d-flex justify-content-center align-items-center">
+                            <Spinner animation="border" />
+                          </div>
+                            ) : (
+                                <button
+                                    type="submit"
+                                    className="active:scale-[0.98] active:duration-95 hover:scale-[1.01] ease-in-out text-lg py-3 rounded-xl font-mono"
+                                    style={{ backgroundColor: "#4f29f0" }}
+                                >
+                                    Create Account
+                                </button>
+                            )}
                         </div>
 
                     </div>
-                </div>
-            </form>
+
+                </form>
+            </div>
         </div>
     );
 }
