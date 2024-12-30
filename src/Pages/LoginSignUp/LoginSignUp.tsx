@@ -1,12 +1,13 @@
-import axios from "axios";
+import { AxiosError } from "axios";
 import { useState } from 'react';
 import { Register } from '../../models/Login/Register';
 import { useLoginClient } from '../../Sevices/Login/LoginClient';
 import PasswordWithValidation from '../../Components/Login/PasswordWithValidation';
 import { useNavigate } from 'react-router-dom';
 import SignUpSidebar from '../../Components/Shared/SignUpSidebar';
-import { XCircleFill } from 'react-bootstrap-icons';
 import Spinner from 'react-bootstrap/Spinner';
+import { isProblemDetails } from "../../Sevices/apiClient";
+import ErrorAlert from "../../Components/Shared/ErrorAlert";
 
 const LoginSignUp: React.FC = () => {
     const navigate = useNavigate();
@@ -17,7 +18,7 @@ const LoginSignUp: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isPasswordValid, setIsPasswordValid] = useState(false);
     const [isSubmitted, setIsSubmitted] = useState(false); // State to track submission
-    const [errorMessage, setErrorMessage] = useState<string | null>(null)
+    const [errorMessage, setErrorMessage] = useState('');
     const [isErrorVisible, setIsErrorVisible] = useState(false);
 
     const handlePasswordChange = (password: string, isValid: boolean) => {
@@ -42,28 +43,35 @@ const LoginSignUp: React.FC = () => {
             if (response.status === 200) {
                 navigate("/code-confirmation/", { state: { encryptedEmail, keyId } });
             }
+        } catch (error: unknown) {
+            setIsLoading(false);
+            setIsErrorVisible(true);
 
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
+            if (isProblemDetails(error)) {
+                // Handle structured API errors (ProblemDetails)
+                const problemDetails = error.response?.data;
+                setErrorMessage(problemDetails?.detail || problemDetails?.title || "An error occurred on our side, we're sorry for the inconvenience.");
+            } else if (error instanceof AxiosError) {
+                // Handle other types of Axios errors
                 if (error.response) {
-                    setIsErrorVisible(true);
-                    const apiError = error.response.data?.error.message;
-                    console.error(apiError);
-                    setIsLoading(false);
-                    if (apiError != null) {
-
-                        setErrorMessage(`Error: ${apiError}`);
-                    } else {
-                        setErrorMessage("An error occurred our side, we're sorry for the inconvenience. Please try again later.");
-                    }
-
+                    // Server responded with a status code outside of 2xx
+                    setErrorMessage(error.response.data?.detail || "An error occurred on our side, we're sorry for the inconvenience.");
                 } else if (error.request) {
-                    throw new Error(`no response from: ${error.request}`);
+                    // Request was made but no response received
+                    setErrorMessage("Unable to connect to the server. Please check your internet connection.");
                 } else {
-                    throw new Error('Error setting up post request');
+                    // Error setting up the request
+                    setErrorMessage("An unexpected error occurred. Please try again.");
                 }
+            } else if (error instanceof Error) {
+                // Handle regular JavaScript errors
+                setErrorMessage(error.message || "An unexpected error occurred. Please try again.");
+            } else {
+                // Handle unknown error types
+                setErrorMessage("An unexpected error occurred. Please try again.");
             }
-            throw new Error('Error posting register request');
+        } finally {
+            setIsLoading(false);
         }
 
     };
@@ -74,19 +82,18 @@ const LoginSignUp: React.FC = () => {
             </div>
 
             <div className="flex-1 flex items-center justify-center text-gray-50 font-mono">
+            {isErrorVisible && (
+                            <ErrorAlert
+                                isVisible={isErrorVisible}
+                                message={errorMessage}
+                            />
+                        )}
                 <form onSubmit={handleSubmit}>
-
                     <h1 className='text-4xl font-semibold text-center'>Sign up</h1>
                     <p className='text-center font-medium text-lg text-slate-100 mt-4'>Welcome to discussed please enter the details.</p>
 
                     <div className='mt-8'>
-                        {isErrorVisible && (<div className="bg-red-200 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert" >
-                            <div className="d-flex align-items-centre">
-                                <XCircleFill size={24} color="red" />{errorMessage}
-                            </div>
-                        </div>
-                        )
-                        }
+                      
                         <div>
                             <div className="">
                                 <input required
@@ -119,9 +126,9 @@ const LoginSignUp: React.FC = () => {
 
                         <div className="mt-8 flex flex-col">
                             {isLoading ? (
-                            <div className="d-flex justify-content-center align-items-center">
-                            <Spinner animation="border" />
-                          </div>
+                                <div className="d-flex justify-content-center align-items-center">
+                                    <Spinner animation="border" />
+                                </div>
                             ) : (
                                 <button
                                     type="submit"

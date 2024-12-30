@@ -28,7 +28,6 @@ const CodeConfirmation: React.FC = () => {
     }
     const response = await emailClient.sendConfirmation(email)
     if (response?.status !== 200) {
-      console.error(response?.data.message);
       navigate('/error');
     }
   };
@@ -69,7 +68,7 @@ const CodeConfirmation: React.FC = () => {
           if (error.response) {
               setIsErrorVisible(true);
               setIsLoading(false);
-              const apiError = error.response.data?.error.message;
+              const apiError = error.response.data?.error.detail;
               console.error(apiError);
               if (apiError != null) {
                 console.log(`not null api`);
