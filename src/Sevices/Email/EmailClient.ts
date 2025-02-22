@@ -1,15 +1,24 @@
 import axios, { AxiosResponse } from "axios";
 import { Email } from "../../models/Email/Email";
-import apiClient from "../apiClient";
 import { useNavigate } from 'react-router-dom';
 import { ConfirmationCodePayload } from '../../models/Login/ConfirmationCode'
-import { useEncryptor } from "../../Processing/Encryption";
+
+const emailClient = axios.create({
+    baseURL: import.meta.env.VITE_EMAIL_BASE_URL,
+    timeout: 20000,
+    headers: {
+        'Content-Type': 'application/json',
+    }
+});
+
+
 export const useEmailClient = () => {
     const navigate = useNavigate();
-    const encryptor = useEncryptor()
+
     const sendConfirmationEmail = async (email: Email): Promise<AxiosResponse | undefined> => {
         try {
-            return await apiClient.post(`/email/send/confirmation`, email, {
+
+            return await emailClient.post(`/email/send/confirmation`, email, {
                 headers: {
                     'Content-Type': 'application/json'
                 }
@@ -23,14 +32,8 @@ export const useEmailClient = () => {
         }
     };
 
-    const sendRecoveryEmail = async (email: string): Promise<AxiosResponse | undefined> => {
-        const [encryptedEmail, keyId] = await encryptor.encryptEmail(email);
-        const emailPayload: Email = {
-            to_send: encryptedEmail,
-            key_id: keyId
-        };
-        
-        return await apiClient.post('/email/send/recovery', emailPayload, {
+    const sendRecoveryEmail = async (email: Email): Promise<AxiosResponse | undefined> => {
+        return await emailClient.post('/email/recovery', email, {
             headers: {
                 'Content-Length': 'application/json'
             }
@@ -39,7 +42,7 @@ export const useEmailClient = () => {
     }
 
     const isValidConfirmationCode = async (confirmationCodePayload: ConfirmationCodePayload): Promise<AxiosResponse | undefined> => {
-        return await apiClient.post('/user/email/confirmation', confirmationCodePayload, {
+        return await emailClient.post('/user/confirm-email', confirmationCodePayload, {
             headers: {
                 'Content-Type': 'application/json'
             }

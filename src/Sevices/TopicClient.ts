@@ -1,10 +1,10 @@
 import axios from "axios";
 import { Topic } from "../models/Topic.ts";
-import apiClient from "./apiClient.ts";
+import userClient from "./userClient.ts";
 
   export const fetchTopic = async(): Promise<Topic> => {
     try{
-    const response = await apiClient.get(`/Topic/generate`, {
+    const response = await userClient.get(`/Topic/generate`, {
       headers:{
          'Content-Type': 'application/json'
       }

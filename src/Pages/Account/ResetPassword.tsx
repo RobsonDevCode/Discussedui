@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { useLoginClient } from "../../Sevices/Login/LoginClient";
 import { useTokenClient } from "../../Sevices/Login/TokenClient";
-import { isProblemDetails } from "../../Sevices/apiClient";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { isProblemDetails } from "../../Sevices/userClient";
+import { redirect, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Divider from "../../Components/Shared/Divider";
 import ResetPasswordWithValidation from "../../Components/Login/ResetPasswordValidation";
 import { Spinner } from "react-bootstrap";
 import ErrorAlert from "../../Components/Shared/ErrorAlert";
-import { RecoverUserPayload } from "../../models/Accounts/ResetPassword";
 import { AxiosError } from "axios";
 
 
@@ -15,10 +14,10 @@ import { AxiosError } from "axios";
 const ResetPassword: React.FC = () => {
     const loginCli = useLoginClient();
     const tokenCli = useTokenClient();
-    const navigate = useNavigate();
-    const location = useLocation();
+    const naviagte = useNavigate();
     const [isRequestIsLoading, setRequestIsLoading] = useState(false);
     const [isPageLoading, setPageIsLoading] = useState(true);
+    const [isTokenValid, setTokenValid] = useState(false);
     const [newPassword, setNewPassword] = useState('');
     const [isErrorVisible, setIsErrorVisible] = useState(false);
     const [isPasswordValid, setIsPasswordValid] = useState(false);
@@ -34,15 +33,24 @@ const ResetPassword: React.FC = () => {
             if (token === null) {
                 return { isValid: false, validUserEmail: null };
             }
+
+            //we dont want to call the api everytime we load 
+            if(isTokenValid){
+                return {isValid: true, validUserEmail: null}
+            }
+
             const response = await tokenCli.validatePasswordtoken(token);
             setPageIsLoading(false);
             if (response.status !== 200) {
+                
                 console.log("route to request expired screen!");
                 return { isValid: false, validUserEmail: null };
             }
             if (response.data === null) {
                 return { isValid: false, validUserEmail: null };
             }
+
+            setTokenValid(true);
             return { isValid: true, validUserEmail: response.data.data.email };
         } catch {
             setRequestIsLoading(false);
@@ -51,6 +59,11 @@ const ResetPassword: React.FC = () => {
     }
 
     const onPageLoad = async () => {
+        //we dont want to call the api over and over so we set validation before
+        if(isTokenValid){
+            return;
+        }
+
         const { isValid, validUserEmail } = await isValidUser();
         if (!isValid) {
             console.log("route to request expired screen!");
@@ -116,9 +129,27 @@ const ResetPassword: React.FC = () => {
         }
     }
 
+    const redirectToLogin = () => {
+        naviagte('/');
+    }
+
     return (
         <div className="flex w-full h-screen">
             <div className="flex-1 flex items-center justify-center text-gray-50 font-mono ">
+                {isPromptVisable && (
+                        <div>
+                            <div className="text-center space-y-2">
+                                <h1 className="text-2xl font-semibold">Password Changed Successfully!</h1>
+                                <p>Please press the button below to naviagte to the login page</p>
+                                <button
+                                    onClick={redirectToLogin}
+                                    className="active:scale-[0.98] active:duration-95 hover:scale-[1.02] ease-in-out text-lg py-3 rounded-xl font-mono"
+                                    style={{ backgroundColor: "#4f29f0" }}
+                                >
+                                    Login
+                                </button>
+                            </div>
+                        </div>)}
                 {isPageLoading && (<div>
                     <div className="d-flex justify-content-center align-items-center">
                         <Spinner animation="border" />

@@ -2,7 +2,7 @@ const SignUpSidebar = () => {
     return (
         <div className="side-bar">
             <aside className="h-screen w-[530px]">
-                <nav className="h-full flex flex-col bg-white border-r drop-shadow-lg">
+                <nav className="h-full flex flex-col bg-white border-r drop-shadow-lg text-black">
                     {/* Top Section */}
                     <div className="p-4 pb-6 flex justify-between items-center">
                         <img src="https://img.logoipsum.com/287.svg" className="w-32" alt="Logo" />

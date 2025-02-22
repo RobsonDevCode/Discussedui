@@ -1,5 +1,4 @@
-export interface ConfirmationCodePayload{ 
-    email: string; 
+export interface ConfirmationCodePayload {
+    email: string;
     confirmation_code: string;
-    key: string; 
 }

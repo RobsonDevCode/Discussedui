@@ -2,16 +2,16 @@ import axios, { AxiosError } from 'axios';
 
 // Types for ProblemDetails
 export interface ProblemDetails {
-    type?: string;
-    title?: string;
-    status?: number;
-    detail?: string;
-    instance?: string;
-     // For additional properties, using unknown is safer than any
+  type?: string;
+  title?: string;
+  status?: number;
+  detail?: string;
+  instance?: string;
+  // For additional properties, using unknown is safer than any
   [key: string]: string | number | boolean | null | undefined;
-  }
+}
 
-  // Axios error type guard
+// Axios error type guard
 export function isProblemDetails(
   error: AxiosError | Error | unknown
 ): error is AxiosError<ProblemDetails> {
@@ -21,14 +21,15 @@ export function isProblemDetails(
     error.response?.data?.status !== undefined
   );
 }
-  
-const apiClient = axios.create({
-    baseURL: import.meta.env.VITE_BASE_URL,
-    timeout: 10000,
-    headers:{
-       'Content-Type': 'application/json',
-    },
-});
- 
 
-export default apiClient;
+const userClient = axios.create({
+  baseURL: import.meta.env.VITE_USER_BASE_URL,
+  timeout: 20000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+
+
+export default userClient;

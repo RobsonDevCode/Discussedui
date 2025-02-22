@@ -8,7 +8,7 @@ import PasswordWithValidation from '../../Components/Login/PasswordWithValidatio
 //import { useNavigate } from 'react-router-dom';
 import { Login } from '../../models/Login/Login';
 import { useNavigate } from "react-router-dom";
-import { isProblemDetails } from "../../Sevices/apiClient";
+import { isProblemDetails } from "../../Sevices/userClient";
 import ErrorAlert from "../../Components/Shared/ErrorAlert";
 
 const LoginPage: React.FC = () => {
@@ -35,7 +35,6 @@ const LoginPage: React.FC = () => {
         const user: Login = {
             username_or_email: usernameOrEmail,
             password: password,
-            key_id: null
         };
 
         try {

@@ -6,7 +6,7 @@ import PasswordWithValidation from '../../Components/Login/PasswordWithValidatio
 import { useNavigate } from 'react-router-dom';
 import SignUpSidebar from '../../Components/Shared/SignUpSidebar';
 import Spinner from 'react-bootstrap/Spinner';
-import { isProblemDetails } from "../../Sevices/apiClient";
+import { isProblemDetails } from "../../Sevices/userClient";
 import ErrorAlert from "../../Components/Shared/ErrorAlert";
 
 const LoginSignUp: React.FC = () => {
@@ -34,14 +34,14 @@ const LoginSignUp: React.FC = () => {
             user_name: regUsername,
             email_address: regEmail,
             password: regPassword,
-            key_id: null
         };
 
         try {
-            const [response, encryptedEmail, keyId] = await loginCli.postNewUserRequest(registerUser);
+            const response = await loginCli.postNewUserRequest(registerUser);
+            const email = registerUser.email_address
             setIsLoading(false);
-            if (response.status === 200) {
-                navigate("/code-confirmation/", { state: { encryptedEmail, keyId } });
+            if (response.status === 201) {
+                navigate("/code-confirmation/", { state: { email } });
             }
         } catch (error: unknown) {
             setIsLoading(false);
@@ -82,18 +82,18 @@ const LoginSignUp: React.FC = () => {
             </div>
 
             <div className="flex-1 flex items-center justify-center text-gray-50 font-mono">
-            {isErrorVisible && (
-                            <ErrorAlert
-                                isVisible={isErrorVisible}
-                                message={errorMessage}
-                            />
-                        )}
+                {isErrorVisible && (
+                    <ErrorAlert
+                        isVisible={isErrorVisible}
+                        message={errorMessage}
+                    />
+                )}
                 <form onSubmit={handleSubmit}>
                     <h1 className='text-4xl font-semibold text-center'>Sign up</h1>
                     <p className='text-center font-medium text-lg text-slate-100 mt-4'>Welcome to discussed please enter the details.</p>
 
                     <div className='mt-8'>
-                      
+
                         <div>
                             <div className="">
                                 <input required

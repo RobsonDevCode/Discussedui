@@ -19,11 +19,10 @@ const CodeConfirmation: React.FC = () => {
   const [isErrorVisible, setIsErrorVisible] = useState(false);
   const sendConfirmationEmail = async () => {
     const email: Email = {
-      to_send: location.state?.encryptedEmail,
-      key_id: location.state?.keyId
+      email_to_send: location.state?.encryptedEmail
     };
 
-    if (email.to_send === null || email.key_id === null) {
+    if (email.email_to_send === null) {
       navigate('/error'); //no real way of fixing this without submitting again
     }
     const response = await emailClient.sendConfirmation(email)
@@ -45,10 +44,14 @@ const CodeConfirmation: React.FC = () => {
     const code = codes.join('');
     // Handle submission with complete code
     const payload: ConfirmationCodePayload = {
-      email: location.state?.encryptedEmail,
+      email: location.state?.email,
       confirmation_code: code, 
-      key: location.state?.keyId
     };
+
+    if (payload.email === null)
+    {
+        navigate('/error');
+    }
 
     try {
       console.log(payload);

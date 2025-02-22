@@ -3,7 +3,8 @@ import { useEmailClient } from "../../Sevices/Email/EmailClient";
 import { Spinner } from "react-bootstrap";
 import  { AxiosError } from "axios";
 import { XCircleFill } from "react-bootstrap-icons";
-import { isProblemDetails } from "../../Sevices/apiClient";
+import { isProblemDetails } from "../../Sevices/userClient";
+import { Email } from "../../models/Email/Email";
 const ForgotPassword: React.FC = () => {
     const emailCli = useEmailClient();
     const [isErrorVisible, setIsErrorVisible] = useState(false);
@@ -15,7 +16,10 @@ const ForgotPassword: React.FC = () => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            await emailCli.sendRecoveryEmail(email);
+          const emailPayload: Email = {
+            email_to_send: email,
+           };
+            await emailCli.sendRecoveryEmail(emailPayload);
             setPromptVisable(true);
         } catch (error: unknown) {
                     setIsLoading(false);
