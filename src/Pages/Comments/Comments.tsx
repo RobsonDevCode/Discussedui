@@ -144,9 +144,8 @@ const Comments: React.FC = () => {
             content: commentContent
         };
 
+        try{
         const comment = await commentCli.postComment(postComment, jwt)
-
-        // Add new comment to the active tab's comments array
         switch (activeTab) {
             case "for-you":
                 setComments([comment, ...comments]);
@@ -158,6 +157,13 @@ const Comments: React.FC = () => {
                 setTopComments([comment, ...topComments]);
                 break;
         }
+        }catch(error: unknown){
+            navigate('/error');
+            console.log(error);
+        }
+
+        // Add new comment to the active tab's comments array
+        
     };
 
     // Format date to readable string

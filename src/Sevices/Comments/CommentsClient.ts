@@ -102,9 +102,10 @@ export const UseCommentClient = () => {
                 jwt = await tokenCli.getJwt(comment.user_id, "id");
             }
 
+            //replace new line with "/n" for valid json
+            comment.content = comment.content.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
             commentClient.defaults.headers.common['Authorization'] = `Bearer ${jwt}`;
             const response = await commentClient.post('/comment', comment);
-
             // Reset retry counter on success
             authRetry = 0;
 
@@ -175,6 +176,7 @@ export const UseCommentClient = () => {
     };
 
     const mapComment = (data: any): Comment => {
+        console.log(data);
         return {
             ...data,
             created_at: new Date(data.created_at),
