@@ -12,14 +12,17 @@ import { isProblemDetails } from "../../Sevices/userClient";
 import ErrorAlert from "../../Components/Shared/ErrorAlert";
 
 const LoginPage: React.FC = () => {
-    // const navigate = useNavigate();
-    const loginCli = useLoginClient();
+
     const navigate = useNavigate();
+    const loginCli = useLoginClient();
+
     const [usernameOrEmail, setUserName] = useState('');
     const [password, setPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
     const [isPasswordValid, setIsPasswordValid] = useState(false);
+
     const [isSubmitted, setIsSubmitted] = useState(false); // State to track submission
+    const [isLoading, setIsLoading] = useState(false);
+
     const [errorMessage, setErrorMessage] = useState('');
     const [isErrorVisible, setIsErrorVisible] = useState(false);
 
@@ -41,7 +44,8 @@ const LoginPage: React.FC = () => {
             const response = await loginCli.postLoginRequest(user);
             setIsLoading(false);
             if (response.status === 200) {
-                console.log("success");
+                const userId = response.data;
+                navigate("/", { state: { userId } })
             }
 
         } catch (error: unknown) {
@@ -112,7 +116,14 @@ const LoginPage: React.FC = () => {
                         </div>
 
                         <div className="mt-4 flex flex-row gap-4 flex-1 flex items-center justify-center text-gray-50 font-mono">
-                            <button onClick={() => navigate('/sign-up')} className="w-1/2 active:scale-[0.98] active:duration-95 hover:scale-[1.01] hover:bg-white hover:text-gray-900 ease-in-out text-lg py-3 rounded-xl font-mono outline">Create An Account</button>
+                            <button
+                                type="button"
+                                onClick={() => navigate('/sign-up')}
+                                className="w-1/2 active:scale-[0.98] active:duration-95 hover:scale-[1.01] hover:bg-white hover:text-gray-900 ease-in-out text-lg py-3 rounded-xl font-mono outline"
+                            >
+                                Create An Account
+                            </button>
+
                             {isLoading ? (
                                 <div className="d-flex justify-content-center align-items-center">
                                     <Spinner animation="border" />
@@ -126,7 +137,6 @@ const LoginPage: React.FC = () => {
                                     Sign In
                                 </button>
                             )}
-
                         </div>
                     </div>
                 </form>

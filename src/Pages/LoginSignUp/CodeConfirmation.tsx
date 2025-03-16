@@ -54,12 +54,9 @@ const CodeConfirmation: React.FC = () => {
     }
 
     try {
-      console.log(payload);
       
       const response = await emailClient.postConfirmationCode(payload);
-      console.log(response?.status);
       if (response?.status === 200) {
-        console.log("success");
       } else {
         setIsLoading(false);
 
@@ -74,7 +71,6 @@ const CodeConfirmation: React.FC = () => {
               const apiError = error.response.data?.error.detail;
               console.error(apiError);
               if (apiError != null) {
-                console.log(`not null api`);
                 setErrorMessage(`Error: ${apiError}`);
               } else {
                   setErrorMessage("An error occurred our side, we're sorry for the inconvenience. Please try again later.");

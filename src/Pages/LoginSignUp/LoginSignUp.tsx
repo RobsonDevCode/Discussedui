@@ -37,6 +37,7 @@ const LoginSignUp: React.FC = () => {
         };
 
         try {
+            console.log("here?");
             const response = await loginCli.postNewUserRequest(registerUser);
             const email = registerUser.email_address
             setIsLoading(false);

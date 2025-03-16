@@ -19,7 +19,27 @@ export const useTokenClient = () => {
         });
     }
 
+    const getJwt = async (credential: string, param: string) : Promise<string | null> => {
+        let response;
+        switch(param){
+            case "id":
+                response = await userClient.get(`token/jwt?id=${credential}`)
+                return response.data;
+
+            case "username":
+                response = await userClient.get(`token/jwt?username=${credential}`)
+                return response.data;
+
+            default: 
+                console.error("Invalid paramter given");
+        }
+
+        return null;
+    }
+
+
     return {
-        validatePasswordtoken
+        validatePasswordtoken,
+        getJwt
     }
 }

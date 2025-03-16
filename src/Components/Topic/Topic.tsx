@@ -9,7 +9,6 @@ const DisplayTopic = () =>{
       const loadTopic = async () => {
         try{
             const data = await fetchTopic();
-            console.log("returning:" + data);
             setTopic(data);
         }catch(err){
           console.error(err);

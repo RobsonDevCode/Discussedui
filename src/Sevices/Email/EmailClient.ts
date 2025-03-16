@@ -26,7 +26,6 @@ export const useEmailClient = () => {
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 const apiError = error.response?.data?.error.detail;
-                console.log(apiError);
                 navigate('/error'); // Navigate to error page on failure
             }
         }

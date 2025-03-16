@@ -5,6 +5,7 @@ export interface Comment {
     topic_id: string, 
     user_id: string, 
     user_name: string, 
+    reference: number,
     content: string, 
     user_interactions: UserInteractions,
     created_at: Date, 
