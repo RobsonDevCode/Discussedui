@@ -6,6 +6,11 @@ import { useTokenClient } from "../Login/TokenClient";
 import { Like } from "../../models/Comments/Like";
 import { PostComment } from "../../models/Comments/PostComment";
 
+interface Result<T> {
+    Data: T;
+    Message: string;
+  }
+
 const commentClient = axios.create({
     baseURL: import.meta.env.VITE_COMMENT_BASE_URL,
     timeout: 20000,
@@ -29,21 +34,53 @@ export function isProblemDetails(
     );
 }
 export const UseCommentClient = () => {
-    const getComments = async (userId: string | null): Promise<Comment[]> => {
-        let response;
-        if (userId === null || userId === undefined) {
-            response = await commentClient.get("/comment/feed");
-            return mapComments(response.data);
-        } else {
-            var jwt = await tokenCli.getJwt(userId, "id");
-            commentClient.defaults.headers.common['Authorization'] = `Bearer ${jwt}`;
-            response = await commentClient.get(`/comment/feed/${userId}`);
+    const getComments = async (userId: string | null, offset: number | null): Promise<Comment[]> => {
+        try {
+            let response;
+            if (userId === null || userId === undefined) {
+                var query = `/comment/feed`;
+                if (offset !== null) {
+                    query = `/comment/feed?offset=${offset}`;
+                }
+                response = await commentClient.get(query);
+                return mapComments(response.data);
+            } else {
+                var jwt = await tokenCli.getJwt(userId, "id");
+                commentClient.defaults.headers.common['Authorization'] = `Bearer ${jwt}`;
 
-            return mapComments(response.data);
+                var query = `/comment/feed/${userId}`;
+                if (offset !== null) {
+                    query = query + `?offset=${offset}`;
+                }
+
+                response = await commentClient.get(query);
+                return mapComments(response.data);
+            }
+        } catch (error: unknown) {
+            logApiError(error);
+            throw error;
+        }
+
+    }
+
+    const validate = async (userId: string, jwt: string | null): Promise<boolean> => {
+        try {
+            if (jwt === null || jwt === undefined) {
+                jwt = await tokenCli.getJwt(userId, "id");
+            }
+
+            commentClient.defaults.headers.common['Authorization'] = `Bearer ${jwt}`;
+            const response = await commentClient.get(`comment/validate-user/${userId}`);
+           
+            const canComment = !response.data.posted_today;
+            return canComment;
+        } catch (error: unknown) {
+            logApiError(error);
+            throw error;
         }
     }
 
-    const getFollowingComments = async (userId: string): Promise<Comment[]> => {
+    const getFollowingComments = async (userId: string, offset: number | null): Promise<Comment[]> => {
         try {
             const jwt = await tokenCli.getJwt(userId, "id");
             commentClient.defaults.headers.common['Authorization'] = `Bearer ${jwt}`;
@@ -58,8 +95,13 @@ export const UseCommentClient = () => {
         }
     }
 
-    const getTopComments = async (): Promise<Comment[]> => {
-        const response = await commentClient.get("/comment/top");
+    const getTopComments = async (offset: number | null): Promise<Comment[]> => {
+        var query = "/comment/top";
+        if (offset !== null) {
+            query += `?offset=${offset}`;
+        }
+
+        const response = await commentClient.get(query);
         return mapComments(response.data);
     }
 
@@ -103,7 +145,8 @@ export const UseCommentClient = () => {
             }
 
             //replace new line with "/n" for valid json
-            comment.content = comment.content.replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+            comment.content = comment.content.replace(/\n/g, "\\n")
+                .replace(/\r/g, "\\r");
             commentClient.defaults.headers.common['Authorization'] = `Bearer ${jwt}`;
             const response = await commentClient.post('/comment', comment);
             // Reset retry counter on success
@@ -116,6 +159,7 @@ export const UseCommentClient = () => {
             if (error instanceof AxiosError &&
                 error.response?.status === 401 &&
                 authRetry < MAX_RETRIES) {
+                console.log("here");
 
                 // Increment retry counter
                 authRetry++;
@@ -136,6 +180,7 @@ export const UseCommentClient = () => {
             throw error;
         }
     };
+
 
     function logApiError(error: unknown) {
         if (isProblemDetails(error)) {
@@ -195,8 +240,27 @@ export const UseCommentClient = () => {
         getTopComments,
         likeComment,
         dislikeComment,
-        postComment
+        postComment,
+        validate
     }
 
+}
 
-} 
+export function logApiError(error: unknown) {
+    if (isProblemDetails(error)) {
+        const problemDetails = error.response?.data;
+        console.error(problemDetails?.detail || problemDetails?.title || "An error occurred on our side, we're sorry for the inconvenience.");
+    } else if (error instanceof AxiosError) {
+        if (error.response) {
+            console.error(error.response.data?.detail || "An error occurred on our side, we're sorry for the inconvenience.");
+        } else if (error.request) {
+            console.error("Unable to connect to the server. Please check your internet connection.");
+        } else {
+            console.error("An unexpected error occurred. Please try again.");
+        }
+    } else if (error instanceof Error) {
+        console.error(error.message || "An unexpected error occurred. Please try again.");
+    } else {
+        console.error("An unexpected error occurred. Please try again.");
+    }
+}

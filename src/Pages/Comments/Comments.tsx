@@ -1,6 +1,5 @@
-import { ChangeEvent, useState, useEffect } from "react";
+import { ChangeEvent, useState, useEffect, useRef } from "react";
 import { Comment } from "../../models/Comments/Comment";
-import { UserInteractions } from "../../models/Comments/UserInteractions";
 import { Heart, MessageCircle, Repeat, Share2 } from "lucide-react";
 import { isProblemDetails, UseCommentClient } from "../../Sevices/Comments/CommentsClient";
 import { AxiosError } from "axios";
@@ -9,25 +8,30 @@ import { Like } from "../../models/Comments/Like";
 import ShareThoughtsModal from "../../Components/Comments/ShareYourThoughtsModal";
 import { PostComment } from "../../models/Comments/PostComment";
 import { useTokenClient } from "../../Sevices/Login/TokenClient";
+import ReplyModal from "../../Components/Comments/ReplyModal";
+import { Reply } from "../../models/Replies/Reply"
+import { PostReply } from "../../models/Replies/PostReply";
+import { UseReplyClient } from "../../Sevices/Replies/ReplyClient";
+import { Toaster, toast } from 'sonner';
 
 // Define tab types
 type TabType = "for-you" | "following" | "top-comments";
 
 const Comments: React.FC = () => {
-   
     const navigate = useNavigate();
-   
+
     //Clients
     const tokenCli = useTokenClient();
     const commentCli = UseCommentClient();
+    const replyCli = UseReplyClient();
 
     // Active tab state
     const [activeTab, setActiveTab] = useState<TabType>("for-you");
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     //Topic 
-    const [topic, setTopic] = useState<string>("Test Topic");
-    
+    const [topic, setTopic] = useState<string>("Luigi Mangione");
+
     // Comments state for each tab
     const [comments, setComments] = useState<Comment[]>([]);
     const [followingComments, setFollowingComments] = useState<Comment[]>([]);
@@ -36,107 +40,172 @@ const Comments: React.FC = () => {
     const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
 
     // Pagination state
-    const [visibleCount, setVisibleCount] = useState<number>(25);
     const [hasMore, setHasMore] = useState<boolean>(true);
+    const [offset, setOffset] = useState<number>(0);
     const BATCH_SIZE = 25;
+    const [visibleCount, setVisibleCount] = useState<number>(BATCH_SIZE);
+    const [isLoadingMore, setIsLoadingMore] = useState<boolean>(false);
+    const [displayedComments, setDisplayedComments] = useState<Comment[]>([]);
+    const loadMoreButtonRef = useRef<HTMLButtonElement>(null);
+
+
+    //Replies 
+    const [isReplyModalOpen, setIsReplyModelOpen] = useState<boolean>(false);
+    const [activeParentComment, setActiveParentComment] = useState<Comment | null>(null)
 
     //Location
     const location = useLocation();
 
     //Auth 
-    const [jwt, setJwt]= useState<string | null>(null);
+    const [jwt, setJwt] = useState<string | null>(null);
+    const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
-    const setAuth = async() => {
-       setJwt(await getJwt(userId))
+    const setAuth = async () => {
+        setJwt(await getJwt(userId))
     };
 
     var userId = location.state?.userId;
-    const newinteraction: UserInteractions = {
-        user_id: "fdkfjdklflk-34rkjkle-5",
-        user_liked: false,
-        likes: 0,
-        reply_count: 0,
-        reposts: 0,
-        last_interaction: new Date()
-    }
 
-    const getJwt = async(userId: string  | null): Promise<string | null> => {
-        if(jwt !== null){
+    const getJwt = async (userId: string | null): Promise<string | null> => {
+        if (jwt !== null) {
             return jwt;
         }
-        else if((userId !== null && userId !== undefined) && jwt === null){
-            return await tokenCli.getJwt(userId, "id") ;
-        }else{
+        else if ((userId !== null && userId !== undefined) && jwt === null) {
+            return await tokenCli.getJwt(userId, "id");
+        } else {
             return null;
         }
     }
 
+    // Helper function to remove duplicates
+    function removeDuplicates(comments: Comment[]): Comment[] {
+        return Array.from(
+            new Map(comments.map(item => [item.id, item])).values()
+        );
+    }
+
+    const fetchData = async (currentOffset: number) => {
+        if (currentOffset === 0) {
+            setIsLoading(true);
+        } else {
+            setIsLoadingMore(true);
+        }
+
+        console.log("fetch offset:" + currentOffset);
+
+        try {
+            let newComments: Comment[] = [];
+
+            switch (activeTab) {
+                case "for-you":
+                    newComments = await commentCli.getComments(userId, currentOffset);
+                    // Remove duplicates from new comments
+                    const uniqueNewComments = removeDuplicates(newComments);
+
+                    if (currentOffset === 0) {
+                        setComments(uniqueNewComments);
+                    } else {
+                        setComments(prev => {
+                            // Combine with existing comments and remove duplicates again
+                            const combined = [...prev, ...uniqueNewComments];
+                            return removeDuplicates(combined);
+                        });
+                    }
+                    break;
+
+                case "following":
+                    if (!isLoggedIn) {
+                        setFollowingComments([]);
+                        setHasMore(false);
+                        break;
+                    }
+
+                    newComments = await commentCli.getFollowingComments(userId, currentOffset);
+                    const uniqueFollowingComments = removeDuplicates(newComments);
+
+                    if (currentOffset === 0) {
+                        setFollowingComments(uniqueFollowingComments);
+                    } else {
+                        setFollowingComments(prev => {
+                            const combined = [...prev, ...uniqueFollowingComments];
+                            return removeDuplicates(combined);
+                        });
+                    }
+                    break;
+
+                case "top-comments":
+                    newComments = await commentCli.getTopComments(currentOffset);
+                    const uniqueTopComments = removeDuplicates(newComments);
+
+                    if (currentOffset === 0) {
+                        setTopComments(uniqueTopComments);
+                    } else {
+                        setTopComments(prev => {
+                            const combined = [...prev, ...uniqueTopComments];
+                            return removeDuplicates(combined);
+                        });
+                    }
+                    break;
+            }
+
+            // Determine if we have more comments to load
+            setHasMore(newComments.length >= BATCH_SIZE);
+
+            // If this is a "load more" operation, show the new comments
+            if (currentOffset > 0) {
+                setVisibleCount(prev => prev + Math.min(BATCH_SIZE, newComments.length));
+            }
+        } catch (error: unknown) {
+            // Your existing error handling
+            console.error("Error fetching comments:", error);
+        } finally {
+            setIsLoading(false);
+            setIsLoadingMore(false);
+        }
+    };
+
+    // Use a separate effect to update displayed comments when data changes
+    useEffect(() => {
+        const currentComments = getCurrentComments();
+        setDisplayedComments(currentComments.slice(0, visibleCount));
+    }, [comments, followingComments, topComments, visibleCount, activeTab]);
+
     // Fetch comments when tab changes
     useEffect(() => {
         setAuth();
+        if (userId !== null && userId !== undefined) {
+            setIsLoggedIn(true);
+        }
 
-        const fetchData = async () => {
-            setIsLoading(true);
-            // Reset visible count when changing tabs
-            setVisibleCount(BATCH_SIZE);
-            setHasMore(true);
+        // Reset pagination when tab changes
+        setOffset(0);
+        setVisibleCount(BATCH_SIZE);
 
-            try {
-                switch (activeTab) {
-                    case "for-you":
-                        const forYouResponse = await commentCli.getComments(userId);
-                        setComments(forYouResponse);
-                        setHasMore(forYouResponse.length > BATCH_SIZE);
-                        break;
-                    case "following":
-                        // For now empty or implement your follow logic
-                        const followingComments = await commentCli.getFollowingComments(userId);
-                        setFollowingComments(followingComments);
-                        setHasMore(followingComments.length > BATCH_SIZE);
-                        break;
-                    case "top-comments":
-                        // Fetch and sort by likes
-                        const topComments = await commentCli.getTopComments();
-                        setTopComments(topComments);
-                        setHasMore(topComments.length > BATCH_SIZE);
-                        break;
-                }
-            } catch (error: unknown) {
-                setIsLoading(false);
-                if (isProblemDetails(error)) {
-                    // Handle structured API errors (ProblemDetails)
-                    const problemDetails = error.response?.data;
-                    console.log(problemDetails?.detail || problemDetails?.title || "An error occurred on our side, we're sorry for the inconvenience.");
-                } else if (error instanceof AxiosError) {
-                    // Handle other types of Axios errors
-                    if (error.response) {
-                        // Server responded with a status code outside of 2xx
-                        console.log(error.response.data?.detail || "An error occurred on our side, we're sorry for the inconvenience.");
-                    } else if (error.request) {
-                        // Request was made but no response received
-                        console.log("Unable to connect to the server. Please check your internet connection.");
-                    } else {
-                        // Error setting up the request
-                        console.log("An unexpected error occurred. Please try again.");
-                    }
-                } else if (error instanceof Error) {
-                    // Handle regular JavaScript errors
-                    console.log(error.message || "An unexpected error occurred. Please try again.");
-                } else {
-                    // Handle unknown error types
-                    console.log("An unexpected error occurred. Please try again.");
-                }
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchData();
+        fetchData(0);
     }, [activeTab]); // Re-fetch when tab changes
+
+    // Handle load more button click
+    const handleLoadMore = async () => {
+        // First, check if we already have more comments loaded but not displayed
+        const currentComments = getCurrentComments();
+
+        if (visibleCount < currentComments.length) {
+            // We have more comments already loaded, just display more
+            setVisibleCount(prev => Math.min(prev + BATCH_SIZE, currentComments.length));
+        } else {
+            // We need to fetch more comments from the API
+            const newOffset = offset + 50;
+            setOffset(newOffset);
+            await fetchData(newOffset);
+        }
+    };
 
     // Handle comment submission
     const handleSubmitComment = async (commentContent: string) => {
         if (commentContent.trim() === "") return;
+
+
+        const toastId = toast.loading('Posting your comment...');
 
         const postComment: PostComment = {
             topic_id: topic,
@@ -144,26 +213,25 @@ const Comments: React.FC = () => {
             content: commentContent
         };
 
-        try{
-        const comment = await commentCli.postComment(postComment, jwt)
-        switch (activeTab) {
-            case "for-you":
-                setComments([comment, ...comments]);
-                break;
-            case "following":
-                setFollowingComments([comment, ...followingComments]);
-                break;
-            case "top-comments":
-                setTopComments([comment, ...topComments]);
-                break;
-        }
-        }catch(error: unknown){
-            navigate('/error');
+        try {
+            const comment = await commentCli.postComment(postComment, jwt)
+            switch (activeTab) {
+                case "for-you":
+                    setComments([comment, ...comments]);
+                    break;
+                case "following":
+                    setFollowingComments([comment, ...followingComments]);
+                    break;
+                case "top-comments":
+                    setTopComments([comment, ...topComments]);
+                    break;
+            }
+            toast.success('Comment posted successfully!', { id: toastId });
+        } catch (error: unknown) {
+            toast.error('Failed to post comment. Please try again.', { id: toastId });
             console.log(error);
         }
 
-        // Add new comment to the active tab's comments array
-        
     };
 
     // Format date to readable string
@@ -178,13 +246,12 @@ const Comments: React.FC = () => {
         return date.toLocaleDateString(undefined, options);
     };
 
-    function handleInputChange(e: ChangeEvent<HTMLTextAreaElement>): void {
-        setNewComment(e.target.value);
-    }
-
     // Implementation for the handleLike function
     const handleLike = async (comment: Comment) => {
         try {
+            if (!isLoggedIn) {
+                navigate("/login");
+            }
             // Create a copy of the comment for optimistic UI update
             const commentToUpdate = { ...comment };
 
@@ -238,7 +305,6 @@ const Comments: React.FC = () => {
                 response = await commentCli.dislikeComment(like);
             }
 
-
             // If server response fails, revert the optimistic update
             if (!response || response.status !== 200) {
                 // Revert to original state if API fails
@@ -286,35 +352,73 @@ const Comments: React.FC = () => {
     const getCurrentComments = () => {
         switch (activeTab) {
             case "for-you":
-                visibleComments = [];
                 return comments;
             case "following":
-                visibleComments = [];
                 return followingComments;
             case "top-comments":
-                visibleComments = [];
                 return topComments;
             default:
-                visibleComments = [];
                 return comments;
         }
     };
 
-    // Handle load more button click
-    const handleLoadMore = () => {
-        const allComments = getCurrentComments();
-        const nextVisibleCount = visibleCount + BATCH_SIZE;
 
-        setVisibleCount(nextVisibleCount);
+    const handleReplyClick = (comment: Comment) => {
+        setActiveParentComment(comment);
+        setIsReplyModelOpen(true);
+    }
 
-        // Check if we have more comments to load
-        if (nextVisibleCount >= allComments.length) {
-            setHasMore(false);
+
+    const handleSubmitReply = async (content: string, parentCommentId: string) => {
+        if (!userId || content.trim() === "") return;
+        
+        console.log("getting here");
+        try {
+          const reply: PostReply = {
+            comment_id: parentCommentId,
+            user_id: userId,
+            content: content
+          };
+          
+          await replyCli.postReply(reply, jwt);
+          
+          // Update UI optimistically - just increment the reply count
+          const updatedComments = getCurrentComments().map(comment => {
+            if (comment.id === parentCommentId) {
+              // Update reply count
+              const updatedInteractions = {
+                ...comment.user_interactions,
+                reply_count: comment.user_interactions.reply_count + 1
+              };
+              
+              return {
+                ...comment,
+                user_interactions: updatedInteractions
+              };
+            }
+            return comment;
+          });
+          
+          // Update the appropriate comment list
+          switch (activeTab) {
+            case "for-you":
+              setComments(updatedComments);
+              break;
+            case "following":
+              setFollowingComments(updatedComments);
+              break;
+            case "top-comments":
+              setTopComments(updatedComments);
+              break;
+          }
+          
+          // Show a success message or notification if desired
+          console.log("Reply posted successfully!");
+        } catch (error) {
+          console.error("Error posting reply:", error);
+          // Handle error, show notification, etc.
         }
-    };
-
-    // Get only the visible comments
-    var visibleComments = getCurrentComments().slice(0, visibleCount);
+      };
 
     return (
         <div className="w-full h-full bg-inherit">
@@ -360,19 +464,19 @@ const Comments: React.FC = () => {
                 {/* Comment Button */}
                 <div className="border-b border-gray-700 p-4 flex justify-between items-center">
                     <div className="flex items-center space-x-3">
-                        <div className="w-12 h-10 rounded-full bg-gray-600"></div>
-                        {(userId !== null && userId !== undefined)? (   <button
+                        <div className="w-12 h-10 rounded-full bg-transparent"></div>
+                        {(userId !== null && userId !== undefined) ? (<button
                             onClick={() => setIsShareModalOpen(true)}
                             className="text-gray-400 hover:text-white w-full text-left"
                         >
                             Share your thoughts on this topic...
-                        </button>): 
+                        </button>) :
 
-                        (<button className="text-gray-400 hover:text-white w-full text-left" 
-                        onClick={() => navigate('/login')}
-                        >Login to share your thoughts on the topic...</button>)
+                            (<button className="text-gray-400 hover:text-white w-full text-left"
+                                onClick={() => navigate('/login')}
+                            >Login to share your thoughts on the topic...</button>)
                         }
-                       
+
                     </div>
 
                     {(userId !== null && userId !== undefined) ? (
@@ -382,15 +486,15 @@ const Comments: React.FC = () => {
                         >
                             Comment
                         </button>
-                    ) : 
-                    (
-                        <button
-                        onClick={() => navigate('/login')}
-                        className="bg-violet-700 hover:bg-violet-800 text-white font-bold px-4 py-2 rounded-full"
-                    >
-                        Login
-                    </button>
-                    )}
+                    ) :
+                        (
+                            <button
+                                onClick={() => navigate('/login')}
+                                className="bg-violet-700 hover:bg-violet-800 text-white font-bold px-4 py-2 rounded-full"
+                            >
+                                Login
+                            </button>
+                        )}
                 </div>
 
                 {/* Comments Feed */}
@@ -399,13 +503,12 @@ const Comments: React.FC = () => {
                         <div className="p-8 text-center text-gray-400">
                             <p>Loading comments...</p>
                         </div>
-                    ) : visibleComments.length > 0 ? (
+                    ) : displayedComments.length > 0 ? (
                         <>
-                            {visibleComments.map((comment) => (
+                            {displayedComments.map((comment) => (
                                 <div key={comment.id} className="p-4 border-b border-gray-700 hover:bg-gray-900 hover:bg-opacity-50 transition-colors duration-200">
                                     <div className="flex space-x-3">
-                                        {/* User Avatar */}
-                                        <div className="w-10 h-10 rounded-full bg-gray-600 flex-shrink-0"></div>
+                                        <div className="w-10 h-10 rounded-full bg-transparent flex-shrink-0"></div>
 
                                         <div className="flex-1">
                                             {/* User Info and Comment Time */}
@@ -424,12 +527,28 @@ const Comments: React.FC = () => {
                                             {/* Comment Actions */}
                                             <div className="flex justify-between max-w-md text-gray-400">
                                                 {/* Reply */}
-                                                <button className="flex items-center space-x-1 group">
-                                                    <MessageCircle size={18} className="group-hover:text-blue-400" />
-                                                    <span className="text-xs group-hover:text-blue-400">
-                                                        {comment.user_interactions.reply_count > 0 ? comment.user_interactions.reply_count : ''}
-                                                    </span>
-                                                </button>
+                                                {(userId !== null && userId !== undefined) ? (
+                                                          <button
+                                                          className="flex items-center space-x-1 group"
+                                                          onClick={() => handleReplyClick(comment)}
+                                                      >
+                                                          <MessageCircle size={18} className="group-hover:text-blue-400" />
+                                                          <span className="text-xs group-hover:text-blue-400">
+                                                              {comment.user_interactions.reply_count > 0 ? comment.user_interactions.reply_count : ''}
+                                                          </span>
+                                                      </button>
+                                                ) :
+                                                (<button
+                                                        className="flex items-center space-x-1 group"
+                                                        onClick={() => navigate('/login')}
+                                                    >
+                                                        <MessageCircle size={18} className="group-hover:text-blue-400" />
+                                                        <span className="text-xs group-hover:text-blue-400">
+                                                            {comment.user_interactions.reply_count > 0 ? comment.user_interactions.reply_count : ''}
+                                                        </span>
+                                                    </button>
+                                                )}
+                                             
 
                                                 {/* Repost */}
                                                 <button className="flex items-center space-x-1 group">
@@ -458,6 +577,8 @@ const Comments: React.FC = () => {
                                                     <Share2 size={18} className="group-hover:text-blue-400" />
                                                 </button>
                                             </div>
+
+                                           
                                         </div>
                                     </div>
                                 </div>
@@ -467,10 +588,12 @@ const Comments: React.FC = () => {
                             {hasMore && (
                                 <div className="p-4 flex justify-center">
                                     <button
+                                        ref={loadMoreButtonRef}
                                         onClick={handleLoadMore}
                                         className="bg-violet-700 hover:bg-violet-800 text-white font-bold px-4 py-2 rounded-full"
+                                        disabled={isLoadingMore}
                                     >
-                                        Load More Comments
+                                        {isLoadingMore ? 'Loading...' : 'Load More Comments'}
                                     </button>
                                 </div>
                             )}
@@ -479,14 +602,18 @@ const Comments: React.FC = () => {
                         <div className="p-4 text-gray-400 text-center border-b border-gray-700 hover:bg-gray-900 hover:bg-opacity-50 transition-colors duration-200">
                             {activeTab === "for-you" ? (
                                 <p>No comments to show. Be the first to comment!</p>
-                            ) : activeTab === "following" ? (
+                            ) : activeTab === "following" && isLoggedIn ? (
                                 <p>No comments from people you follow yet.</p>
-                            ) : (
-                                <p>No top comments to show yet.</p>
-                            )}
+                            ) : activeTab === "following" && !isLoggedIn ? (
+                                <p>To see followers please login or create an account!</p>
+                            )
+                                : (
+                                    <p>No top comments to show yet.</p>
+                                )}
                         </div>
                     )}
                 </div>
+
             </div>
 
             {/* Modal component */}
@@ -496,6 +623,15 @@ const Comments: React.FC = () => {
                 onSubmit={handleSubmitComment}
                 userId={userId || ""}
                 topicTitle={topic}
+                commentCli={commentCli}
+                jwt={jwt}
+            />
+            <ReplyModal
+                isOpen={isReplyModalOpen}
+                onClose={() => setIsReplyModelOpen(false)}
+                onSubmit={handleSubmitReply}
+                userId={userId || ""}
+                parentComment={activeParentComment}
             />
         </div>
     );

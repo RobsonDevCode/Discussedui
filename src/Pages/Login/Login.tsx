@@ -45,6 +45,7 @@ const LoginPage: React.FC = () => {
             setIsLoading(false);
             if (response.status === 200) {
                 const userId = response.data;
+                localStorage.setItem('userId', userId);
                 navigate("/", { state: { userId } })
             }
 
