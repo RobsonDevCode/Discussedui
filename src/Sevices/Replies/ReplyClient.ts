@@ -55,10 +55,26 @@ export const UseReplyClient = () => {
 
             throw error;
         }
-
     };
 
+    const validate = async (userId: string, jwt: string | null): Promise<boolean> => {
+        try {
+            if(jwt === null || jwt === undefined){
+                jwt = await tokenCli.getJwt(userId, "id");
+            }
+
+            replyClient.defaults.headers.common['Authorization'] = `Bearer ${jwt}`;
+            const response = await replyClient.get(`reply/validate/${userId}`);
+
+            const canReply = !response.data.posted_today;
+            return canReply;
+        }catch(error: unknown){
+            logApiError(error);
+            throw error;
+        }
+    }
     return {
-        postReply
+        postReply,
+        validate
     };
 }

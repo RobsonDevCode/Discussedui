@@ -1,4 +1,4 @@
-import { ChangeEvent, useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Comment } from "../../models/Comments/Comment";
 import { Heart, MessageCircle, Repeat, Share2 } from "lucide-react";
 import { isProblemDetails, UseCommentClient } from "../../Sevices/Comments/CommentsClient";
@@ -9,10 +9,12 @@ import ShareThoughtsModal from "../../Components/Comments/ShareYourThoughtsModal
 import { PostComment } from "../../models/Comments/PostComment";
 import { useTokenClient } from "../../Sevices/Login/TokenClient";
 import ReplyModal from "../../Components/Comments/ReplyModal";
-import { Reply } from "../../models/Replies/Reply"
 import { PostReply } from "../../models/Replies/PostReply";
 import { UseReplyClient } from "../../Sevices/Replies/ReplyClient";
 import { Toaster, toast } from 'sonner';
+import CommentModal from "../../Components/Comments/CommentModal";
+import { CommentWithReplies } from "../../models/Comments/CommentWithReplies";
+import { Reply } from "../../models/Replies/Reply";
 
 // Define tab types
 type TabType = "for-you" | "following" | "top-comments";
@@ -48,6 +50,11 @@ const Comments: React.FC = () => {
     const [displayedComments, setDisplayedComments] = useState<Comment[]>([]);
     const loadMoreButtonRef = useRef<HTMLButtonElement>(null);
 
+
+    //Open Comment 
+    const [isCommentOpen, setIsCommentOpen] = useState<boolean>(false);
+    const [activeComment, setActiveComment] = useState<CommentWithReplies | null>(null);
+    const [isLoadingReplies, setIsLoadingReplies] = useState<boolean>(false);
 
     //Replies 
     const [isReplyModalOpen, setIsReplyModelOpen] = useState<boolean>(false);
@@ -371,54 +378,151 @@ const Comments: React.FC = () => {
 
     const handleSubmitReply = async (content: string, parentCommentId: string) => {
         if (!userId || content.trim() === "") return;
-        
+
         console.log("getting here");
         try {
-          const reply: PostReply = {
-            comment_id: parentCommentId,
-            user_id: userId,
-            content: content
-          };
-          
-          await replyCli.postReply(reply, jwt);
-          
-          // Update UI optimistically - just increment the reply count
-          const updatedComments = getCurrentComments().map(comment => {
-            if (comment.id === parentCommentId) {
-              // Update reply count
-              const updatedInteractions = {
-                ...comment.user_interactions,
-                reply_count: comment.user_interactions.reply_count + 1
-              };
-              
-              return {
-                ...comment,
-                user_interactions: updatedInteractions
-              };
+            const reply: PostReply = {
+                comment_id: parentCommentId,
+                user_id: userId,
+                content: content
+            };
+
+            await replyCli.postReply(reply, jwt);
+
+            // Update UI optimistically - just increment the reply count
+            const updatedComments = getCurrentComments().map(comment => {
+                if (comment.id === parentCommentId) {
+                    // Update reply count
+                    const updatedInteractions = {
+                        ...comment.user_interactions,
+                        reply_count: comment.user_interactions.reply_count + 1
+                    };
+
+                    return {
+                        ...comment,
+                        user_interactions: updatedInteractions
+                    };
+                }
+                return comment;
+            });
+
+            // Update the appropriate comment list
+            switch (activeTab) {
+                case "for-you":
+                    setComments(updatedComments);
+                    break;
+                case "following":
+                    setFollowingComments(updatedComments);
+                    break;
+                case "top-comments":
+                    setTopComments(updatedComments);
+                    break;
             }
-            return comment;
-          });
-          
-          // Update the appropriate comment list
-          switch (activeTab) {
-            case "for-you":
-              setComments(updatedComments);
-              break;
-            case "following":
-              setFollowingComments(updatedComments);
-              break;
-            case "top-comments":
-              setTopComments(updatedComments);
-              break;
-          }
-          
-          // Show a success message or notification if desired
-          console.log("Reply posted successfully!");
+
+            // Show a success message or notification if desired
+            console.log("Reply posted successfully!");
         } catch (error) {
-          console.error("Error posting reply:", error);
-          // Handle error, show notification, etc.
+            console.error("Error posting reply:", error);
+            // Handle error, show notification, etc.
         }
-      };
+    };
+
+
+    const handleOpenComment = async (commentId: string, userId: string) => {
+        setIsLoadingReplies(true);
+        try {
+            const response = await commentCli.getCommentWithReplies(commentId, userId, jwt);
+            const commentWithReplies: CommentWithReplies = {
+                comment: response.comment,
+                replies: response.replies || []
+            };
+
+            setActiveComment(commentWithReplies);
+            setIsCommentOpen(true);
+
+        } catch (error) {
+            console.error("Error fetching comment thread:", error);
+            toast.error("Could not load comment thread");
+        } finally {
+            setIsLoadingReplies(false);
+        }
+    }
+
+    const handleThreadLike = async (commentId: string, isReply: boolean = false) => {
+        if (!userId) {
+            navigate("/login");
+            return;
+        }
+
+        try {
+            const like: Like = {
+                comment_id: commentId,
+                user_id: userId
+            };
+
+            if (activeComment) {
+                if (!isReply) {
+                    // It's the main comment
+                    const comment = activeComment.comment;
+                    const newLikedStatus = !comment.user_interactions.user_liked;
+
+                    // Update optimistically
+                    setActiveComment({
+                        ...activeComment,
+                        comment: {
+                            ...comment,
+                            user_interactions: {
+                                ...comment.user_interactions,
+                                user_liked: newLikedStatus,
+                                likes: newLikedStatus
+                                    ? comment.user_interactions.likes + 1
+                                    : comment.user_interactions.likes - 1
+                            }
+                        }
+                    });
+
+                    if (newLikedStatus) {
+                        await commentCli.likeComment(like);
+                    } else {
+                        await commentCli.dislikeComment(like);
+                    }
+                } else {
+                    const replies = activeComment?.replies?.map(reply => {
+                        if (reply.id === commentId) {
+                            const newLikedStatus = !reply.interactions.liked;
+                            return {
+                                ...reply,
+                                interactions: {
+                                    ...reply.interactions,
+                                    liked: newLikedStatus,
+                                    likes: newLikedStatus ? reply.interactions.likes + 1 : reply.interactions.likes - 1
+                                }
+                            };
+                        }
+                        return reply;
+                    }) || [];
+
+                    setActiveComment({
+                        ...activeComment,
+                        replies
+                    });
+
+                    const replyLike = {
+                        reply_id: commentId,
+                        user_id: userId
+                    };
+
+                    //const updatedReply = await commentCli.likeReply(replyLike);
+                }
+            }
+        } catch (error) {
+            console.error("Error updating like:", error);
+            toast.error("Could not update like status");
+
+            // You might want to revert the optimistic update here
+        }
+    };
+
 
     return (
         <div className="w-full h-full bg-inherit">
@@ -465,18 +569,21 @@ const Comments: React.FC = () => {
                 <div className="border-b border-gray-700 p-4 flex justify-between items-center">
                     <div className="flex items-center space-x-3">
                         <div className="w-12 h-10 rounded-full bg-transparent"></div>
-                        {(userId !== null && userId !== undefined) ? (<button
-                            onClick={() => setIsShareModalOpen(true)}
-                            className="text-gray-400 hover:text-white w-full text-left"
-                        >
-                            Share your thoughts on this topic...
-                        </button>) :
-
-                            (<button className="text-gray-400 hover:text-white w-full text-left"
+                        {(userId !== null && userId !== undefined) ? (
+                            <button
+                                onClick={() => setIsShareModalOpen(true)}
+                                className="text-gray-400 hover:text-white w-full text-left"
+                            >
+                                Share your thoughts on this topic...
+                            </button>
+                        ) : (
+                            <button
+                                className="text-gray-400 hover:text-white w-full text-left"
                                 onClick={() => navigate('/login')}
-                            >Login to share your thoughts on the topic...</button>)
-                        }
-
+                            >
+                                Login to share your thoughts on the topic...
+                            </button>
+                        )}
                     </div>
 
                     {(userId !== null && userId !== undefined) ? (
@@ -486,15 +593,14 @@ const Comments: React.FC = () => {
                         >
                             Comment
                         </button>
-                    ) :
-                        (
-                            <button
-                                onClick={() => navigate('/login')}
-                                className="bg-violet-700 hover:bg-violet-800 text-white font-bold px-4 py-2 rounded-full"
-                            >
-                                Login
-                            </button>
-                        )}
+                    ) : (
+                        <button
+                            onClick={() => navigate('/login')}
+                            className="bg-violet-700 hover:bg-violet-800 text-white font-bold px-4 py-2 rounded-full"
+                        >
+                            Login
+                        </button>
+                    )}
                 </div>
 
                 {/* Comments Feed */}
@@ -506,7 +612,11 @@ const Comments: React.FC = () => {
                     ) : displayedComments.length > 0 ? (
                         <>
                             {displayedComments.map((comment) => (
-                                <div key={comment.id} className="p-4 border-b border-gray-700 hover:bg-gray-900 hover:bg-opacity-50 transition-colors duration-200">
+                                <div
+                                    key={comment.id}
+                                    className="p-4 border-b border-gray-700 hover:bg-gray-900 hover:bg-opacity-50 transition-colors duration-200 cursor-pointer"
+                                    onClick={() => handleOpenComment(comment.id, userId || "")}
+                                >
                                     <div className="flex space-x-3">
                                         <div className="w-10 h-10 rounded-full bg-transparent flex-shrink-0"></div>
 
@@ -528,19 +638,25 @@ const Comments: React.FC = () => {
                                             <div className="flex justify-between max-w-md text-gray-400">
                                                 {/* Reply */}
                                                 {(userId !== null && userId !== undefined) ? (
-                                                          <button
-                                                          className="flex items-center space-x-1 group"
-                                                          onClick={() => handleReplyClick(comment)}
-                                                      >
-                                                          <MessageCircle size={18} className="group-hover:text-blue-400" />
-                                                          <span className="text-xs group-hover:text-blue-400">
-                                                              {comment.user_interactions.reply_count > 0 ? comment.user_interactions.reply_count : ''}
-                                                          </span>
-                                                      </button>
-                                                ) :
-                                                (<button
+                                                    <button
                                                         className="flex items-center space-x-1 group"
-                                                        onClick={() => navigate('/login')}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleReplyClick(comment);
+                                                        }}
+                                                    >
+                                                        <MessageCircle size={18} className="group-hover:text-blue-400" />
+                                                        <span className="text-xs group-hover:text-blue-400">
+                                                            {comment.user_interactions.reply_count > 0 ? comment.user_interactions.reply_count : ''}
+                                                        </span>
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        className="flex items-center space-x-1 group"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate('/login');
+                                                        }}
                                                     >
                                                         <MessageCircle size={18} className="group-hover:text-blue-400" />
                                                         <span className="text-xs group-hover:text-blue-400">
@@ -548,10 +664,12 @@ const Comments: React.FC = () => {
                                                         </span>
                                                     </button>
                                                 )}
-                                             
 
                                                 {/* Repost */}
-                                                <button className="flex items-center space-x-1 group">
+                                                <button
+                                                    className="flex items-center space-x-1 group"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
                                                     <Repeat size={18} className="group-hover:text-green-400" />
                                                     <span className="text-xs group-hover:text-green-400">
                                                         {comment.user_interactions.reposts > 0 ? comment.user_interactions.reposts : ''}
@@ -561,7 +679,10 @@ const Comments: React.FC = () => {
                                                 {/* Like */}
                                                 <button
                                                     className="flex items-center space-x-1 group"
-                                                    onClick={() => handleLike(comment)}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleLike(comment);
+                                                    }}
                                                 >
                                                     <Heart
                                                         size={18}
@@ -573,12 +694,13 @@ const Comments: React.FC = () => {
                                                 </button>
 
                                                 {/* Share */}
-                                                <button className="flex items-center space-x-1 group">
+                                                <button
+                                                    className="flex items-center space-x-1 group"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
                                                     <Share2 size={18} className="group-hover:text-blue-400" />
                                                 </button>
                                             </div>
-
-                                           
                                         </div>
                                     </div>
                                 </div>
@@ -606,17 +728,18 @@ const Comments: React.FC = () => {
                                 <p>No comments from people you follow yet.</p>
                             ) : activeTab === "following" && !isLoggedIn ? (
                                 <p>To see followers please login or create an account!</p>
-                            )
-                                : (
-                                    <p>No top comments to show yet.</p>
-                                )}
+                            ) : (
+                                <p>No top comments to show yet.</p>
+                            )}
                         </div>
                     )}
                 </div>
-
             </div>
 
-            {/* Modal component */}
+            {/* Toaster for notifications */}
+            <Toaster position="top-right" richColors />
+
+            {/* Modal components */}
             <ShareThoughtsModal
                 isOpen={isShareModalOpen}
                 onClose={() => setIsShareModalOpen(false)}
@@ -632,6 +755,17 @@ const Comments: React.FC = () => {
                 onSubmit={handleSubmitReply}
                 userId={userId || ""}
                 parentComment={activeParentComment}
+                replyCli={replyCli}
+                jwt={jwt}
+            />
+            <CommentModal
+                isOpen={isCommentOpen}
+                onClose={() => setIsCommentOpen(false)}
+                commentWithReplies={activeComment}
+                userId={userId || ""}
+                onLike={handleThreadLike}
+                onReply={handleSubmitReply}
+                onShare={() => { }}
             />
         </div>
     );

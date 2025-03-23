@@ -5,6 +5,7 @@ import { ProblemDetails } from "../userClient";
 import { useTokenClient } from "../Login/TokenClient";
 import { Like } from "../../models/Comments/Like";
 import { PostComment } from "../../models/Comments/PostComment";
+import { mapComment, mapComments, mapReply, mapReplies, mapCommentsWithReplies } from '../../Mapper/MapComments'; 
 
 interface Result<T> {
     Data: T;
@@ -62,6 +63,36 @@ export const UseCommentClient = () => {
         }
 
     }
+    const getCommentWithReplies = async (commentId: string, userId: string, jwt: string| null) => {
+        try{
+            if(jwt === null || jwt === undefined){
+                jwt = await tokenCli.getJwt(userId, "id");
+            }
+
+            commentClient.defaults.headers.common['Authorization'] = `Bearer ${jwt}`;
+            const response = await commentClient.get(`/comment/${commentId}`);
+            console.log(response.data)
+            return mapCommentsWithReplies(response.data);
+        }catch(error: unknown){
+            if (error instanceof AxiosError &&
+                error.response?.status === 401 &&
+                authRetry < MAX_RETRIES) {
+                console.log("here");
+
+                authRetry++;
+
+                const freshJwt = await tokenCli.getJwt(userId, "id");
+
+                return await getCommentWithReplies(commentId, userId, freshJwt);
+            }
+
+            logApiError(error);
+
+             authRetry = 0;
+ 
+             throw error;
+        }
+    }
 
     const validate = async (userId: string, jwt: string | null): Promise<boolean> => {
         try {
@@ -70,7 +101,7 @@ export const UseCommentClient = () => {
             }
 
             commentClient.defaults.headers.common['Authorization'] = `Bearer ${jwt}`;
-            const response = await commentClient.get(`comment/validate-user/${userId}`);
+            const response = await commentClient.get(`comment/validate/${userId}`);
            
             const canComment = !response.data.posted_today;
             return canComment;
@@ -201,43 +232,12 @@ export const UseCommentClient = () => {
         }
     }
 
-    const mapComments = (data: any[]): Comment[] => {
-        // Remove duplicates based on ID
-        const uniqueComments = Array.from(
-            new Map(data.map(item => [item.id, item])).values()
-        );
-        // Convert date strings to Date objects
-        const mapped = uniqueComments.map(comment => ({
-            ...comment,
-            created_at: new Date(comment.created_at),
-            updated_at: new Date(comment.updated_at),
-            user_interactions: {
-                ...comment.user_interactions,
-                last_interaction: new Date(comment.user_interactions.last_interaction)
-            }
-        }));
 
-        return mapped;
-    };
-
-    const mapComment = (data: any): Comment => {
-        console.log(data);
-        return {
-            ...data,
-            created_at: new Date(data.created_at),
-            updated_at: new Date(data.updated_at),
-            user_interactions: {
-                ...(data.user_interactions || {}),
-                last_interaction: data.user_interactions?.last_interaction
-                    ? new Date(data.user_interactions.last_interaction)
-                    : new Date()
-            }
-        };
-    };
     return {
         getComments,
         getFollowingComments,
         getTopComments,
+        getCommentWithReplies,
         likeComment,
         dislikeComment,
         postComment,

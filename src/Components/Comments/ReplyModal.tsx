@@ -1,6 +1,7 @@
 import React, { useState, ChangeEvent, useRef, useEffect } from "react";
-import { X } from "lucide-react";
+import { Clock, X } from "lucide-react";
 import { Comment } from "../../models/Comments/Comment";
+import { Toaster, toast } from "sonner";
 
 interface ReplyModalProps {
   isOpen: boolean;
@@ -8,7 +9,10 @@ interface ReplyModalProps {
   onSubmit: (content: string, commentId: string) => void;
   userId: string;
   parentComment: Comment | null;
- 
+  replyCli: {
+    validate: (userId: string, jwt: string | null) => Promise<boolean>;
+  };
+  jwt: string | null;
 }
 
 const ReplyModal: React.FC<ReplyModalProps> = ({ 
@@ -16,11 +20,16 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
   onClose, 
   onSubmit,
   userId,
-  parentComment
+  parentComment,
+  replyCli, 
+  jwt
 }) => {
   const [replyContent, setReplyContent] = useState<string>("");
+  const [canReply, setCanReply] = useState<boolean>(true);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
+  const [isValidating, setIsValidating] = useState<boolean>(true);
+
+
   // Function to count words in a string
   const countWords = (text: string): number => {
     return text.trim() === '' ? 0 : text.trim().split(/\s+/).length;
@@ -29,33 +38,24 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
   // Calculate word count
   const wordCount = countWords(replyContent);
 
-  // Update textarea height based on content
-  useEffect(() => {
-    if (textareaRef.current) {
-      // Reset height to auto to get the correct scrollHeight
-      textareaRef.current.style.height = 'auto';
-      
-      // Default rows
-      let rows = 4;
-      
-      if (wordCount > 60) {
-        if (wordCount <= 250) {
-          // Gradually increase rows based on word count, up to 250 words
-          const additionalRows = Math.min((wordCount - 60) / 10, 12);
-          rows += Math.floor(additionalRows);
-        } else {
-          // Max expansion at 250 words
-          rows = 16; // 4 base rows + 12 additional = max expansion at 250 words
-        }
-      }
-      
-      textareaRef.current.rows = rows;
-    }
-  }, [replyContent, wordCount]);
-
+ 
   // Reset reply content when modal opens/closes
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && userId) {
+      setIsValidating(true);
+      replyCli.validate(userId, jwt)
+      .then(canReply => {
+        setCanReply(canReply);
+      })
+      .catch(error => {
+        console.error("Error validating comment eligibility:", error);
+        toast.error("Couldn't verify your comment eligibility. Please try again later.");
+        setCanReply(false);
+      })
+      .finally(() => {
+        setIsValidating(false);
+      });
+
       setReplyContent("");
       // Focus the textarea when the modal opens
       setTimeout(() => {
@@ -64,7 +64,31 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
         }
       }, 100);
     }
-  }, [isOpen]);
+  }, [isOpen, userId, replyCli]);
+
+ // Update textarea height based on content
+ useEffect(() => {
+  if (textareaRef.current) {
+    // Reset height to auto to get the correct scrollHeight
+    textareaRef.current.style.height = 'auto';
+    
+    // Default rows
+    let rows = 4;
+    
+    if (wordCount > 60) {
+      if (wordCount <= 250) {
+        // Gradually increase rows based on word count, up to 250 words
+        const additionalRows = Math.min((wordCount - 60) / 10, 12);
+        rows += Math.floor(additionalRows);
+      } else {
+        // Max expansion at 250 words
+        rows = 16; // 4 base rows + 12 additional = max expansion at 250 words
+      }
+    }
+    
+    textareaRef.current.rows = rows;
+  }
+}, [replyContent, wordCount]);
 
   if (!isOpen || !parentComment) return null;
 
@@ -91,6 +115,21 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
         minute: '2-digit'
     };
     return date.toLocaleDateString(undefined, options);
+  };
+
+  const renderReplyRestriction = () => {
+    return (
+    <div className="flex items-center p-3 bg-indigo-900/50 border border-indigo-800 rounded-lg mb-4">
+    <div className="flex items-center justify-center flex-shrink-0 mr-2">
+      <Clock size={20} className="text-yellow-300" />
+    </div>
+    <div className="flex items-center">
+      <p className="text-yellow-200 text-sm leading-5 my-auto">
+        You've already shared your thoughts today. Please return tomorrow to reply again.
+      </p>
+    </div>
+  </div>
+    );
   };
 
   return (
@@ -134,6 +173,9 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
           </div>
         </div>
 
+        {!canReply && !isValidating && renderReplyRestriction()}
+
+
         <div className="p-4">
           <form onSubmit={handleSubmit} className="w-full">
             <div className="flex items-start space-x-4">
@@ -144,13 +186,14 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
                     ref={textareaRef}
                     value={replyContent}
                     onChange={handleInputChange}
-                    placeholder={`Reply to ${parentComment.user_name}...`}
+                    placeholder={canReply ? "Share your thoughts on this topic..." : "You can comment again tomorrow..."}
                     className="w-full p-2 bg-gray-800 bg-opacity-50 rounded-md text-white placeholder-gray-500 border-none outline-none resize-none overflow-y-auto"
                     style={{ 
                       maxHeight: wordCount > 250 ? '400px' : 'auto'
                     }}
                     rows={4}
                     autoFocus
+                    disabled={!canReply || isValidating}
                   />
                 </div>
                 <div className="flex justify-between items-center mt-4">
@@ -159,8 +202,8 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
                   </div>
                   <button
                     type="submit"
-                    className="bg-violet-700 hover:bg-violet-800 text-white font-bold px-6 py-2 rounded-full"
-                    disabled={replyContent.trim() === ""}
+                    className={`${canReply && !isValidating ? 'bg-violet-700 hover:bg-violet-800' : 'bg-gray-700 cursor-not-allowed'} text-white font-bold px-6 py-2 rounded-full transition-colors duration-200`}
+                    disabled={replyContent.trim() === "" || !canReply || isValidating}
                   >
                     Reply
                   </button>
