@@ -41,8 +41,9 @@ const ShareThoughtsModal: React.FC<ShareThoughtsModalProps> = ({
     if (isOpen && userId) {
       setIsValidating(true);
       commentCli.validate(userId, jwt)
-        .then(canCommentToday => {
-          setCanComment(canCommentToday);
+        .then(canComment => {
+         console.log(canComment);
+          setCanComment(canComment);
         })
         .catch(error => {
           console.error("Error validating comment eligibility:", error);

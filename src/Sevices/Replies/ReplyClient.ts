@@ -66,7 +66,7 @@ export const UseReplyClient = () => {
             replyClient.defaults.headers.common['Authorization'] = `Bearer ${jwt}`;
             const response = await replyClient.get(`reply/validate/${userId}`);
 
-            const canReply = !response.data.posted_today;
+            const canReply = response.data.can_reply;
             return canReply;
         }catch(error: unknown){
             logApiError(error);

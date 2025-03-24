@@ -5,12 +5,12 @@ import { ProblemDetails } from "../userClient";
 import { useTokenClient } from "../Login/TokenClient";
 import { Like } from "../../models/Comments/Like";
 import { PostComment } from "../../models/Comments/PostComment";
-import { mapComment, mapComments, mapReply, mapReplies, mapCommentsWithReplies } from '../../Mapper/MapComments'; 
+import { mapComment, mapComments, mapReply, mapReplies, mapCommentsWithReplies } from '../../Mapper/MapComments';
 
 interface Result<T> {
     Data: T;
     Message: string;
-  }
+}
 
 const commentClient = axios.create({
     baseURL: import.meta.env.VITE_COMMENT_BASE_URL,
@@ -63,17 +63,17 @@ export const UseCommentClient = () => {
         }
 
     }
-    const getCommentWithReplies = async (commentId: string, userId: string, jwt: string| null) => {
-        try{
-            if(jwt === null || jwt === undefined){
+
+    const getCommentWithReplies = async (commentId: string, userId: string, jwt: string | null) => {
+        try {
+            if (jwt === null || jwt === undefined) {
                 jwt = await tokenCli.getJwt(userId, "id");
             }
-
             commentClient.defaults.headers.common['Authorization'] = `Bearer ${jwt}`;
             const response = await commentClient.get(`/comment/${commentId}`);
             console.log(response.data)
             return mapCommentsWithReplies(response.data);
-        }catch(error: unknown){
+        } catch (error: unknown) {
             if (error instanceof AxiosError &&
                 error.response?.status === 401 &&
                 authRetry < MAX_RETRIES) {
@@ -88,9 +88,9 @@ export const UseCommentClient = () => {
 
             logApiError(error);
 
-             authRetry = 0;
- 
-             throw error;
+            authRetry = 0;
+
+            throw error;
         }
     }
 
@@ -102,8 +102,8 @@ export const UseCommentClient = () => {
 
             commentClient.defaults.headers.common['Authorization'] = `Bearer ${jwt}`;
             const response = await commentClient.get(`comment/validate/${userId}`);
-           
-            const canComment = !response.data.posted_today;
+
+            const canComment = response.data.canComment;
             return canComment;
         } catch (error: unknown) {
             logApiError(error);
@@ -126,12 +126,18 @@ export const UseCommentClient = () => {
         }
     }
 
-    const getTopComments = async (offset: number | null): Promise<Comment[]> => {
-        var query = "/comment/top";
-        if (offset !== null) {
-            query += `?offset=${offset}`;
-        }
+    const getTopComments = async (userId: string | null, offset: number | null): Promise<Comment[]> => {
 
+        var query = "/comment/top";
+        let hasParams = false;
+        // Add userId if present
+        if (userId) {
+            query += `?userId=${userId}`;
+            hasParams = true;
+        }
+        if (offset !== undefined && offset !== null) {
+            query += hasParams ? `&offset=${offset}` : `?offset=${offset}`;
+        }
         const response = await commentClient.get(query);
         return mapComments(response.data);
     }

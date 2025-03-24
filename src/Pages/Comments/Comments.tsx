@@ -141,7 +141,7 @@ const Comments: React.FC = () => {
                     break;
 
                 case "top-comments":
-                    newComments = await commentCli.getTopComments(currentOffset);
+                    newComments = await commentCli.getTopComments(userId, currentOffset);
                     const uniqueTopComments = removeDuplicates(newComments);
 
                     if (currentOffset === 0) {
@@ -387,6 +387,7 @@ const Comments: React.FC = () => {
                 content: content
             };
 
+            console.log(reply);
             await replyCli.postReply(reply, jwt);
 
             // Update UI optimistically - just increment the reply count
@@ -489,7 +490,7 @@ const Comments: React.FC = () => {
                 } else {
                     const replies = activeComment?.replies?.map(reply => {
                         if (reply.id === commentId) {
-                            const newLikedStatus = !reply.interactions.liked;
+                            const newLikedStatus = !reply.interactions.user_liked;
                             return {
                                 ...reply,
                                 interactions: {
@@ -693,13 +694,7 @@ const Comments: React.FC = () => {
                                                     </span>
                                                 </button>
 
-                                                {/* Share */}
-                                                <button
-                                                    className="flex items-center space-x-1 group"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    <Share2 size={18} className="group-hover:text-blue-400" />
-                                                </button>
+                                              
                                             </div>
                                         </div>
                                     </div>
@@ -736,8 +731,6 @@ const Comments: React.FC = () => {
                 </div>
             </div>
 
-            {/* Toaster for notifications */}
-            <Toaster position="top-right" richColors />
 
             {/* Modal components */}
             <ShareThoughtsModal
@@ -765,7 +758,8 @@ const Comments: React.FC = () => {
                 userId={userId || ""}
                 onLike={handleThreadLike}
                 onReply={handleSubmitReply}
-                onShare={() => { }}
+                replyCli={replyCli}
+                jwt={jwt}
             />
         </div>
     );
