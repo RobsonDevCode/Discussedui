@@ -526,242 +526,270 @@ const Comments: React.FC = () => {
 
 
     return (
-        <div className="w-full h-full bg-inherit">
-            {/* Topic Header */}
-            <div className="rounded-b-lg flex flex-col items-center justify-center border border-gray-700 shadow-lg p-4 mx-auto max-w-4xl text-center">
-                <h1 className="text-2xl font-bold text-white">Today's topic:</h1>
-                <p className="text-2xl text-white">{topic}</p>
+        <div className="w-full h-full">
+        {/* Topic Header - Glass morphism effect */}
+        <div className="rounded-lg flex flex-col items-center justify-center border border-gray-700/50 shadow-lg p-6 mx-auto max-w-4xl text-center bg-gray-900/30 backdrop-blur-md">
+            <h1 className="text-2xl font-bold text-white mb-1">Today's topic:</h1>
+            <p className="text-3xl font-medium text-white bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">{topic}</p>
+        </div>
+    
+        {/* Main content area - Improved glass card */}
+        <div className="max-w-4xl mx-auto mt-4 border border-gray-700/50 rounded-lg overflow-hidden bg-gray-900/20 backdrop-blur-md shadow-xl">
+            {/* Tabs - Improved styling */}
+            <div className="flex border-b border-gray-700/70">
+                <button
+                    className={`flex-1 py-4 text-center font-medium relative transition-colors duration-200 ${activeTab === "for-you" ? "text-white" : "text-gray-500 hover:text-gray-300"}`}
+                    onClick={() => setActiveTab("for-you")}
+                >
+                    For You
+                    {activeTab === "for-you" && (
+                        <div className="absolute bottom-0 left-0 right-0 mx-auto w-16 h-1 bg-gradient-to-r from-violet-500 to-indigo-600 rounded-full"></div>
+                    )}
+                </button>
+                <button
+                    className={`flex-1 py-4 text-center font-medium relative transition-colors duration-200 ${activeTab === "following" ? "text-white" : "text-gray-500 hover:text-gray-300"}`}
+                    onClick={() => setActiveTab("following")}
+                >
+                    Following
+                    {activeTab === "following" && (
+                        <div className="absolute bottom-0 left-0 right-0 mx-auto w-16 h-1 bg-gradient-to-r from-violet-500 to-indigo-600 rounded-full"></div>
+                    )}
+                </button>
+                <button
+                    className={`flex-1 py-4 text-center font-medium relative transition-colors duration-200 ${activeTab === "top-comments" ? "text-white" : "text-gray-500 hover:text-gray-300"}`}
+                    onClick={() => setActiveTab("top-comments")}
+                >
+                    Top Comments
+                    {activeTab === "top-comments" && (
+                        <div className="absolute bottom-0 left-0 right-0 mx-auto w-16 h-1 bg-gradient-to-r from-violet-500 to-indigo-600 rounded-full"></div>
+                    )}
+                </button>
             </div>
-
-            {/* Main content area */}
-            <div className="max-w-4xl mx-auto border-l border-r border-gray-700 bg-opacity-70" style={{ backdropFilter: 'blur(5px)' }}>
-                {/* Tabs */}
-                <div className="flex border-b border-gray-700">
-                    <button
-                        className={`flex-1 py-4 text-center font-medium relative ${activeTab === "for-you" ? "text-white" : "text-gray-500 hover:text-gray-300"}`}
-                        onClick={() => setActiveTab("for-you")}
-                    >
-                        For You
-                        {activeTab === "for-you" && (
-                            <div className="absolute bottom-0 left-0 right-0 mx-auto w-16 h-1 bg-violet-700 rounded-full"></div>
-                        )}
-                    </button>
-                    <button
-                        className={`flex-1 py-4 text-center font-medium relative ${activeTab === "following" ? "text-white" : "text-gray-500 hover:text-gray-300"}`}
-                        onClick={() => setActiveTab("following")}
-                    >
-                        Following
-                        {activeTab === "following" && (
-                            <div className="absolute bottom-0 left-0 right-0 mx-auto w-16 h-1 bg-violet-700 rounded-full"></div>
-                        )}
-                    </button>
-                    <button
-                        className={`flex-1 py-4 text-center font-medium relative ${activeTab === "top-comments" ? "text-white" : "text-gray-500 hover:text-gray-300"}`}
-                        onClick={() => setActiveTab("top-comments")}
-                    >
-                        Top Comments
-                        {activeTab === "top-comments" && (
-                            <div className="absolute bottom-0 left-0 right-0 mx-auto w-16 h-1 bg-violet-700 rounded-full"></div>
-                        )}
-                    </button>
-                </div>
-
-                {/* Comment Button */}
-                <div className="border-b border-gray-700 p-4 flex justify-between items-center">
-                    <div className="flex items-center space-x-3">
-                        <div className="w-12 h-10 rounded-full bg-transparent"></div>
-                        {(userId !== null && userId !== undefined) ? (
-                            <button
-                                onClick={() => setIsShareModalOpen(true)}
-                                className="text-gray-400 hover:text-white w-full text-left"
-                            >
-                                Share your thoughts on this topic...
-                            </button>
-                        ) : (
-                            <button
-                                className="text-gray-400 hover:text-white w-full text-left"
-                                onClick={() => navigate('/login')}
-                            >
-                                Login to share your thoughts on the topic...
-                            </button>
-                        )}
+    
+            {/* Comment Input - Improved styling */}
+            <div className="border-b border-gray-700/70 p-5 flex justify-between items-center">
+                <div className="flex items-center space-x-3 flex-1">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center text-gray-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                            <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd" />
+                        </svg>
                     </div>
-
                     {(userId !== null && userId !== undefined) ? (
                         <button
                             onClick={() => setIsShareModalOpen(true)}
-                            className="bg-violet-700 hover:bg-violet-800 text-white font-bold px-4 py-2 rounded-full"
+                            className="text-gray-400 hover:text-white w-full text-left transition-colors duration-200 bg-gray-800/50 py-2 px-4 rounded-full"
                         >
-                            Comment
+                            Share your thoughts on this topic...
                         </button>
                     ) : (
                         <button
+                            className="text-gray-400 hover:text-white w-full text-left transition-colors duration-200 bg-gray-800/50 py-2 px-4 rounded-full"
                             onClick={() => navigate('/login')}
-                            className="bg-violet-700 hover:bg-violet-800 text-white font-bold px-4 py-2 rounded-full"
                         >
-                            Login
+                            Login to share your thoughts...
                         </button>
                     )}
                 </div>
-
-                {/* Comments Feed */}
-                <div>
-                    {isLoading ? (
-                        <div className="p-8 text-center text-gray-400">
-                            <p>Loading comments...</p>
-                        </div>
-                    ) : displayedComments.length > 0 ? (
-                        <>
-                            {displayedComments.map((comment) => (
-                                <div
-                                    key={comment.id}
-                                    className="p-4 border-b border-gray-700 hover:bg-gray-900 hover:bg-opacity-50 transition-colors duration-200 cursor-pointer"
-                                    onClick={() => handleOpenComment(comment.id, userId || "")}
-                                >
-                                    <div className="flex space-x-3">
-                                        <div className="w-10 h-10 rounded-full bg-transparent flex-shrink-0"></div>
-
-                                        <div className="flex-1">
-                                            {/* User Info and Comment Time */}
-                                            <div className="flex items-center space-x-1">
-                                                <span className="font-bold text-white">{comment.user_name}</span>
-                                                <span className="text-gray-400">@{comment.user_name.toLowerCase()}</span>
-                                                <span className="text-gray-400">·</span>
-                                                <span className="text-gray-400 text-sm">{formatDate(comment.created_at)}</span>
-                                            </div>
-
-                                            {/* Comment Content */}
-                                            <div className="mt-1 mb-2">
-                                                <p className="text-white">{comment.content}</p>
-                                            </div>
-
-                                            {/* Comment Actions */}
-                                            <div className="flex justify-between max-w-md text-gray-400">
-                                                {/* Reply */}
-                                                {(userId !== null && userId !== undefined) ? (
-                                                    <button
-                                                        className="flex items-center space-x-1 group"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleReplyClick(comment);
-                                                        }}
-                                                    >
-                                                        <MessageCircle size={18} className="group-hover:text-blue-400" />
-                                                        <span className="text-xs group-hover:text-blue-400">
-                                                            {comment.user_interactions.reply_count > 0 ? comment.user_interactions.reply_count : ''}
-                                                        </span>
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        className="flex items-center space-x-1 group"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            navigate('/login');
-                                                        }}
-                                                    >
-                                                        <MessageCircle size={18} className="group-hover:text-blue-400" />
-                                                        <span className="text-xs group-hover:text-blue-400">
-                                                            {comment.user_interactions.reply_count > 0 ? comment.user_interactions.reply_count : ''}
-                                                        </span>
-                                                    </button>
-                                                )}
-
-                                                {/* Repost */}
+    
+                {(userId !== null && userId !== undefined) ? (
+                    <button
+                        onClick={() => setIsShareModalOpen(true)}
+                        className="bg-gradient-to-r from-violet-600 to-indigo-700 hover:from-violet-700 hover:to-indigo-800 text-white font-medium px-5 py-2 rounded-full ml-4 transition-all duration-200 shadow-lg shadow-violet-700/20"
+                    >
+                        Comment
+                    </button>
+                ) : (
+                    <button
+                        onClick={() => navigate('/login')}
+                        className="bg-gradient-to-r from-violet-600 to-indigo-700 hover:from-violet-700 hover:to-indigo-800 text-white font-medium px-5 py-2 rounded-full ml-4 transition-all duration-200 shadow-lg shadow-violet-700/20"
+                    >
+                        Login
+                    </button>
+                )}
+            </div>
+    
+            {/* Comments Feed - Improved styling */}
+            <div>
+                {isLoading ? (
+                    <div className="p-12 text-center text-gray-400 flex flex-col items-center justify-center">
+                        <div className="w-10 h-10 border-t-2 border-violet-500 border-r-2 border-gray-700 rounded-full animate-spin mb-3"></div>
+                        <p>Loading comments...</p>
+                    </div>
+                ) : displayedComments.length > 0 ? (
+                    <>
+                        {displayedComments.map((comment) => (
+                            <div
+                                key={comment.id}
+                                className="p-5 border-b border-gray-700/50 hover:bg-gray-800/30 transition-colors duration-200 cursor-pointer"
+                                onClick={() => handleOpenComment(comment.id, userId || "")}
+                            >
+                                <div className="flex space-x-3">
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex-shrink-0 flex items-center justify-center text-gray-400">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                                            <path fillRule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+    
+                                    <div className="flex-1">
+                                        {/* User Info and Comment Time */}
+                                        <div className="flex items-center space-x-1 flex-wrap">
+                                            <span className="font-bold text-white">{comment.user_name}</span>
+                                            <span className="text-gray-400">@{comment.user_name.toLowerCase()}</span>
+                                            <span className="text-gray-500">·</span>
+                                            <span className="text-gray-400 text-sm">{formatDate(comment.created_at)}</span>
+                                        </div>
+    
+                                        {/* Comment Content */}
+                                        <div className="mt-2 mb-3">
+                                            <p className="text-white leading-relaxed">{comment.content}</p>
+                                        </div>
+    
+                                        {/* Comment Actions - Improved spacing and hover effects */}
+                                        <div className="flex justify-start gap-6 text-gray-400">
+                                            {/* Reply */}
+                                            {(userId !== null && userId !== undefined) ? (
                                                 <button
-                                                    className="flex items-center space-x-1 group"
-                                                    onClick={(e) => e.stopPropagation()}
-                                                >
-                                                    <Repeat size={18} className="group-hover:text-green-400" />
-                                                    <span className="text-xs group-hover:text-green-400">
-                                                        {comment.user_interactions.reposts > 0 ? comment.user_interactions.reposts : ''}
-                                                    </span>
-                                                </button>
-
-                                                {/* Like */}
-                                                <button
-                                                    className="flex items-center space-x-1 group"
+                                                    className="flex items-center space-x-2 group"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        handleLike(comment);
+                                                        handleReplyClick(comment);
                                                     }}
                                                 >
-                                                    <Heart
-                                                        size={18}
-                                                        className={`${comment.user_interactions.user_liked ? 'text-red-500 fill-red-500' : 'group-hover:text-red-400'}`}
-                                                    />
-                                                    <span className={`text-xs ${comment.user_interactions.user_liked ? 'text-red-500' : 'group-hover:text-red-400'}`}>
-                                                        {comment.user_interactions.likes > 0 ? comment.user_interactions.likes : ''}
+                                                    <MessageCircle size={18} className="group-hover:text-blue-400 transition-colors duration-200" />
+                                                    <span className="text-sm group-hover:text-blue-400 transition-colors duration-200">
+                                                        {comment.user_interactions.reply_count > 0 ? comment.user_interactions.reply_count : ''}
                                                     </span>
                                                 </button>
-
-                                              
-                                            </div>
+                                            ) : (
+                                                <button
+                                                    className="flex items-center space-x-2 group"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigate('/login');
+                                                    }}
+                                                >
+                                                    <MessageCircle size={18} className="group-hover:text-blue-400 transition-colors duration-200" />
+                                                    <span className="text-sm group-hover:text-blue-400 transition-colors duration-200">
+                                                        {comment.user_interactions.reply_count > 0 ? comment.user_interactions.reply_count : ''}
+                                                    </span>
+                                                </button>
+                                            )}
+    
+                                            {/* Repost */}
+                                            <button
+                                                className="flex items-center space-x-2 group"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <Repeat size={18} className="group-hover:text-green-400 transition-colors duration-200" />
+                                                <span className="text-sm group-hover:text-green-400 transition-colors duration-200">
+                                                    {comment.user_interactions.reposts > 0 ? comment.user_interactions.reposts : ''}
+                                                </span>
+                                            </button>
+    
+                                            {/* Like */}
+                                            <button
+                                                className="flex items-center space-x-2 group"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleLike(comment);
+                                                }}
+                                            >
+                                                <Heart
+                                                    size={18}
+                                                    className={`${comment.user_interactions.user_liked ? 'text-red-500 fill-red-500' : 'group-hover:text-red-400'} transition-colors duration-200`}
+                                                />
+                                                <span className={`text-sm ${comment.user_interactions.user_liked ? 'text-red-500' : 'group-hover:text-red-400'} transition-colors duration-200`}>
+                                                    {comment.user_interactions.likes > 0 ? comment.user_interactions.likes : ''}
+                                                </span>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
-                            ))}
-
-                            {/* Load More Button */}
-                            {hasMore && (
-                                <div className="p-4 flex justify-center">
-                                    <button
-                                        ref={loadMoreButtonRef}
-                                        onClick={handleLoadMore}
-                                        className="bg-violet-700 hover:bg-violet-800 text-white font-bold px-4 py-2 rounded-full"
-                                        disabled={isLoadingMore}
-                                    >
-                                        {isLoadingMore ? 'Loading...' : 'Load More Comments'}
-                                    </button>
-                                </div>
-                            )}
-                        </>
-                    ) : (
-                        <div className="p-4 text-gray-400 text-center border-b border-gray-700 hover:bg-gray-900 hover:bg-opacity-50 transition-colors duration-200">
+                            </div>
+                        ))}
+    
+                        {/* Load More Button - Improved styling */}
+                        {hasMore && (
+                            <div className="p-6 flex justify-center">
+                                <button
+                                    ref={loadMoreButtonRef}
+                                    onClick={handleLoadMore}
+                                    className="bg-gray-800 hover:bg-gray-700 text-white font-medium px-6 py-2.5 rounded-full transition-colors duration-200 flex items-center space-x-2"
+                                    disabled={isLoadingMore}
+                                >
+                                    {isLoadingMore ? (
+                                        <>
+                                            <div className="w-4 h-4 border-t-2 border-white border-r-2 border-gray-700 rounded-full animate-spin"></div>
+                                            <span>Loading...</span>
+                                        </>
+                                    ) : (
+                                        <span>Load More Comments</span>
+                                    )}
+                                </button>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="py-12 px-4 text-gray-400 text-center">
+                        <div className="bg-gray-800/30 mx-auto max-w-sm p-8 rounded-xl border border-gray-700/50">
+                            <div className="text-gray-300 mb-3 flex justify-center">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 text-gray-500">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 01.865-.501 48.172 48.172 0 003.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
+                                </svg>
+                            </div>
                             {activeTab === "for-you" ? (
-                                <p>No comments to show. Be the first to comment!</p>
+                                <p className="font-medium">No comments to show. Be the first to share your thoughts!</p>
                             ) : activeTab === "following" && isLoggedIn ? (
-                                <p>No comments from people you follow yet.</p>
+                                <p className="font-medium">No comments from people you follow yet.</p>
                             ) : activeTab === "following" && !isLoggedIn ? (
-                                <p>To see followers please login or create an account!</p>
+                                <p className="font-medium">Login to see comments from people you follow.</p>
                             ) : (
-                                <p>No top comments to show yet.</p>
+                                <p className="font-medium">No top comments to show yet.</p>
+                            )}
+                            {(userId === null || userId === undefined) && (
+                                <button 
+                                    onClick={() => navigate('/login')}
+                                    className="mt-4 bg-gradient-to-r from-violet-600 to-indigo-700 hover:from-violet-700 hover:to-indigo-800 text-white font-medium px-5 py-2 rounded-full transition-all duration-200 shadow-lg shadow-violet-700/20"
+                                >
+                                    Login to comment
+                                </button>
                             )}
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
-
-
-            {/* Modal components */}
-            <ShareThoughtsModal
-                isOpen={isShareModalOpen}
-                onClose={() => setIsShareModalOpen(false)}
-                onSubmit={handleSubmitComment}
-                userId={userId || ""}
-                topicTitle={topic}
-                commentCli={commentCli}
-                jwt={jwt}
-            />
-            <ReplyModal
-                isOpen={isReplyModalOpen}
-                onClose={() => setIsReplyModelOpen(false)}
-                onSubmit={handleSubmitReply}
-                userId={userId || ""}
-                parentComment={activeParentComment}
-                replyCli={replyCli}
-                jwt={jwt}
-            />
-            <CommentModal
-                isOpen={isCommentOpen}
-                onClose={() => setIsCommentOpen(false)}
-                commentWithReplies={activeComment}
-                userId={userId || ""}
-                onLike={handleThreadLike}
-                onReply={handleSubmitReply}
-                replyCli={replyCli}
-                jwt={jwt}
-            />
         </div>
+    
+        {/* Modal components (unchanged) */}
+        <ShareThoughtsModal
+            isOpen={isShareModalOpen}
+            onClose={() => setIsShareModalOpen(false)}
+            onSubmit={handleSubmitComment}
+            userId={userId || ""}
+            topicTitle={topic}
+            commentCli={commentCli}
+            jwt={jwt}
+        />
+        <ReplyModal
+            isOpen={isReplyModalOpen}
+            onClose={() => setIsReplyModelOpen(false)}
+            onSubmit={handleSubmitReply}
+            userId={userId || ""}
+            parentComment={activeParentComment}
+            replyCli={replyCli}
+            jwt={jwt}
+        />
+        <CommentModal
+            isOpen={isCommentOpen}
+            onClose={() => setIsCommentOpen(false)}
+            commentWithReplies={activeComment}
+            userId={userId || ""}
+            onLike={handleThreadLike}
+            onReply={handleSubmitReply}
+            replyCli={replyCli}
+            jwt={jwt}
+        />
+    </div>
     );
 }
 

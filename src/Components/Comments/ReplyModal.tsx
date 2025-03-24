@@ -45,6 +45,7 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
       setIsValidating(true);
       replyCli.validate(userId, jwt)
       .then(canReply => {
+        console.log(canReply);
         setCanReply(canReply);
       })
       .catch(error => {
@@ -55,7 +56,6 @@ const ReplyModal: React.FC<ReplyModalProps> = ({
       .finally(() => {
         setIsValidating(false);
       });
-
       setReplyContent("");
       // Focus the textarea when the modal opens
       setTimeout(() => {
