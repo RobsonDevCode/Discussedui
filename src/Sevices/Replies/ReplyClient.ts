@@ -62,7 +62,7 @@ export const UseReplyClient = () => {
             if(jwt === null || jwt === undefined){
                 jwt = await tokenCli.getJwt(userId, "id");
             }
-
+            userId = 
             replyClient.defaults.headers.common['Authorization'] = `Bearer ${jwt}`;
             const response = await replyClient.get(`reply/validate/${userId}`);
             const canReply = response.data.data.can_reply;

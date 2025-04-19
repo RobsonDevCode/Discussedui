@@ -610,8 +610,7 @@ const Comments: React.FC = () => {
     try {
       const response = await commentCli.getCommentWithReplies(
         commentId,
-        userId,
-        jwt
+        userId
       );
 
       if (response === null) {
@@ -1140,7 +1139,7 @@ const Comments: React.FC = () => {
                   <button
                     ref={loadMoreButtonRef}
                     onClick={handleLoadMore}
-                    className="bg-gray-800 hover:bg-gray-700 text-white font-medium px-6 py-2.5 rounded-full transition-colors duration-200 flex items-center space-x-2"
+                    className="bg-gradient-to-r from-violet-600 to-indigo-700 hover:from-violet-500 hover:to-indigo-600 text-white font-medium px-6 py-2.5 rounded-full transition-all duration-300 shadow-lg shadow-violet-900/30 transform hover:translate-y-px"
                     disabled={isLoadingMore}
                   >
                     {isLoadingMore ? (
@@ -1232,7 +1231,6 @@ const Comments: React.FC = () => {
         replyCli={replyCli}
         jwt={jwt}
       />
-
       <RepostModal
         isOpen={isRepostModalOpen}
         onClose={() => setIsRepostModalOpen(false)}
