@@ -1,8 +1,7 @@
 import axios, { AxiosError } from "axios";
 import { PostReply } from "../../models/Replies/PostReply"
-import { logApiError } from "../Comments/CommentsClient";
-import { isProblemDetails } from "../userClient";
 import { useTokenClient } from "../Login/TokenClient";
+import { useGlobalExtensions } from "../../Extensions/GlobalExtensions";
 
 const replyClient = axios.create({
     baseURL: import.meta.env.VITE_COMMENT_BASE_URL,
@@ -15,8 +14,9 @@ const replyClient = axios.create({
 const tokenCli = useTokenClient();
 let authRetry = 0;
 const MAX_RETRIES = 1;
-
 export const UseReplyClient = () => {
+
+    const extensions = useGlobalExtensions();
     const postReply = async (reply: PostReply, jwt: string | null) => {
         try {
             if (jwt === null || jwt === undefined) {
@@ -48,7 +48,7 @@ export const UseReplyClient = () => {
             }
 
             // Log the error
-            logApiError(error);
+            extensions.logApiError(error);
 
             // Reset retry counter after error handling is complete
             authRetry = 0;
@@ -65,12 +65,10 @@ export const UseReplyClient = () => {
 
             replyClient.defaults.headers.common['Authorization'] = `Bearer ${jwt}`;
             const response = await replyClient.get(`reply/validate/${userId}`);
-            console.log(response);
             const canReply = response.data.data.can_reply;
-            console.log("can reply?: " + canReply);
             return canReply;
         }catch(error: unknown){
-            logApiError(error);
+            extensions.logApiError(error);
             throw error;
         }
     }

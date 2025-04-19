@@ -42,7 +42,6 @@ const ShareThoughtsModal: React.FC<ShareThoughtsModalProps> = ({
       setIsValidating(true);
       commentCli.validate(userId, jwt)
         .then(canComment => {
-         console.log(canComment);
           setCanComment(canComment);
         })
         .catch(error => {

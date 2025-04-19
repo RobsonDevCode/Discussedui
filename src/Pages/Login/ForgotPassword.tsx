@@ -3,8 +3,8 @@ import { useEmailClient } from "../../Sevices/Email/EmailClient";
 import { Spinner } from "react-bootstrap";
 import  { AxiosError } from "axios";
 import { XCircleFill } from "react-bootstrap-icons";
-import { isProblemDetails } from "../../Sevices/userClient";
 import { Email } from "../../models/Email/Email";
+import { isProblemDetails } from "../../Extensions/GlobalExtensions";
 const ForgotPassword: React.FC = () => {
     const emailCli = useEmailClient();
     const [isErrorVisible, setIsErrorVisible] = useState(false);

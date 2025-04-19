@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useLoginClient } from "../../Sevices/Login/LoginClient";
 import { useTokenClient } from "../../Sevices/Login/TokenClient";
-import { isProblemDetails } from "../../Sevices/userClient";
 import { redirect, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Divider from "../../Components/Shared/Divider";
 import ResetPasswordWithValidation from "../../Components/Login/ResetPasswordValidation";
 import { Spinner } from "react-bootstrap";
 import ErrorAlert from "../../Components/Shared/ErrorAlert";
 import { AxiosError } from "axios";
+import { isProblemDetails } from "../../Extensions/GlobalExtensions";
 
 
 

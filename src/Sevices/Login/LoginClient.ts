@@ -1,6 +1,6 @@
 import { AxiosResponse } from "axios";
 import { Register as RegisterDto } from "../../models/Login/Register";
-import userClient from "../userClient";
+import userClient from "../UserClient";
 import { Login } from "../../models/Login/Login";
 import { RecoverUserPayload } from "../../models/Accounts/ResetPassword";
 

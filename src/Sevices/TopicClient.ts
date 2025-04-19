@@ -1,6 +1,6 @@
 import axios from "axios";
 import { Topic } from "../models/Topic.ts";
-import userClient from "./userClient.ts";
+import userClient from "./UserClient.ts";
 
   export const fetchTopic = async(): Promise<Topic> => {
     try{

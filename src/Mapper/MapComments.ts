@@ -1,6 +1,19 @@
 import { Comment } from "../models/Comments/Comment";
+import { CommentResponse } from "../models/Comments/CommentResponse";
 import { CommentWithReplies } from "../models/Comments/CommentWithReplies";
+import { Repost } from "../models/Comments/Repost";
 import { Reply } from "../models/Replies/Reply";
+
+
+
+export const mapCommentResponses = (data: any[]): CommentResponse[] => {
+  const mapped = data.map(item => ({
+    comment: mapCommentSafely(item?.comment),
+    repost: mapRepost(item?.repost)
+  }));
+
+  return mapped;
+};
 
 export const mapComments = (data: any[]): Comment[] => {
   // Remove duplicates based on ID
@@ -21,6 +34,22 @@ export const mapComments = (data: any[]): Comment[] => {
   return mapped;
 };
 
+export const mapCommentSafely = (data: any): Comment | null => {
+  if (!data) return null; // Check if data is null or undefined
+  
+  return {
+      ...data,
+      created_at: new Date(data.created_at),
+      updated_at: new Date(data.updated_at),
+      user_interactions: {
+          ...(data.user_interactions || {}),
+          last_interaction: data.user_interactions?.last_interaction
+              ? new Date(data.user_interactions.last_interaction)
+              : new Date()
+      }
+  };
+};
+
 export const mapComment = (data: any): Comment => {
   return {
       ...data,
@@ -36,12 +65,23 @@ export const mapComment = (data: any): Comment => {
 };
 
 
+export const mapRepost = (data: any): Repost | null => {
+  if (!data) return null; // Check if data is null or undefined
+  
+  return {
+    ...data,
+    created_at: new Date(data.created_at),
+    updated_at: new Date(data.updated_at),
+    comment: mapCommentSafely(data.comment)
+  };
+};
+
 export const mapCommentsWithReplies = (data: any): CommentWithReplies => {
   const repliesArray = Array.from(data.replies);
   const replies = mapReplies(repliesArray);
-  const comments =mapComment(data.comment);
+  const comments = mapComment(data.comment); //we assume this can't be null
   return {
-        comment:comments,
+        comment: comments,
         replies: replies
     }
 }

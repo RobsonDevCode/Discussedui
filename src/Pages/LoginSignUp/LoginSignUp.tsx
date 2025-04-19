@@ -6,8 +6,8 @@ import PasswordWithValidation from '../../Components/Login/PasswordWithValidatio
 import { useNavigate } from 'react-router-dom';
 import SignUpSidebar from '../../Components/Shared/SignUpSidebar';
 import Spinner from 'react-bootstrap/Spinner';
-import { isProblemDetails } from "../../Sevices/userClient";
 import ErrorAlert from "../../Components/Shared/ErrorAlert";
+import { isProblemDetails } from "../../Extensions/GlobalExtensions";
 
 const LoginSignUp: React.FC = () => {
     const navigate = useNavigate();
@@ -37,7 +37,6 @@ const LoginSignUp: React.FC = () => {
         };
 
         try {
-            console.log("here?");
             const response = await loginCli.postNewUserRequest(registerUser);
             const email = registerUser.email_address
             setIsLoading(false);
